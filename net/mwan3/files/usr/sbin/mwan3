@@ -178,7 +178,7 @@ stop()
 	config_foreach mwan3_online_metric_clean interface
 
 	for IP in "$IP4" "$IP6"; do
-
+		test -n "$IP" || continue
 		for route in $(seq 1 $MWAN3_INTERFACE_MAX); do
 			$IP route flush table $route &> /dev/null
 		done
@@ -189,7 +189,7 @@ stop()
 	done
 
 	for IPT in "$IPT4" "$IPT6"; do
-
+		test -n "$IPT" || continue
 		$IPT -D PREROUTING -j mwan3_hook &> /dev/null
 		$IPT -D OUTPUT -j mwan3_hook &> /dev/null
 
