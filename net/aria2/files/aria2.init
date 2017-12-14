@@ -61,6 +61,14 @@ _reset_dir_mode() {
 	done
 }
 
+_is_disk_dir() {
+	local _path="$1"
+	while ! test -d "$_path"; do _path=`dirname "$_path"`; done
+	echo "$_path" | grep -q "^/mnt" && return 0
+	echo "$_path" | grep -q "^/data" && return 0
+	return 1
+}
+
 append_options() {
 	local o; local v
 	for o in "$@"; do
@@ -158,7 +166,11 @@ aria2_start() {
 
 	[ "$enabled" = "1" ] || { _info "Instance \"${section}\" disabled."; return 1; }
 	[ -n "$dir" ] || { _err "Please set downlod dir."; return 1; }
+	[ -d "$dir" ] || {
+		_is_disk_dir "$dir" && _make_dir "$dir"
+	}
 	[ -d "$dir" ] || { _err "Please create downlod dir first."; return 1; }
+	_is_disk_dir "$dir" || { _err "Please insert usb disk first."; return 1; }
 
 	config_file="${config_dir}/${NAME}.conf.${section}"
 	config_file_tmp="${config_dir}/${NAME}.conf.tmp"
@@ -313,6 +325,7 @@ aria2_start() {
 	if [ -n "$user" ]; then
 		if ( user_exists "$user" && _change_owner "$user" "$config_dir" "$log" ); then
 				_info "Aria2 will run with user '${user}'."
+				_is_disk_dir "$dir" && _change_owner "$user" "$dir"
 				if [ "$user" != "root" ]; then
 					_info "Please make sure user '${user}' has write access to download dir: ${dir}"
 				fi
