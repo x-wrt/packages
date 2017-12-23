@@ -15,7 +15,7 @@ PKG_LICENSE:=GPL-2.0
 # Since kernel 2.6.39.1 userspace tools are inside the kernel tree
 # Package Automatic match version in kernel
 # MD5SUM is not useful kernel package already check it
-PKG_VERSION:=$(shell  sed -n -e '/^AC_INIT/s/.*\[\([[:digit:]\.]*\)\].*/\1/gp' $(LINUX_DIR)/tools/usb/usbip/configure.ac)
+PKG_VERSION:=1.0
 PKG_SOURCE:=
 PKG_SOURCE_URL:=
 PKG_MD5SUM:=unknown
