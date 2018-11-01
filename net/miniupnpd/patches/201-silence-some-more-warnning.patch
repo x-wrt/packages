@@ -1,0 +1,35 @@
+diff --git a/asyncsendto.c b/asyncsendto.c
+index 7abef30..44fa553 100644
+--- a/asyncsendto.c
++++ b/asyncsendto.c
+@@ -252,7 +252,7 @@ int try_sendto(fd_set * writefds)
+ 					/* uncatched error */
+ 					if(sockaddr_to_string(elt->dest_addr, addr_str, sizeof(addr_str)) <= 0)
+ 						addr_str[0] = '\0';
+-					syslog(LOG_ERR, "%s(sock=%d, len=%u, dest=%s): sendto: %m",
++					syslog(LOG_INFO, "%s(sock=%d, len=%u, dest=%s): sendto: %m",
+ 					       "try_sendto", elt->sockfd, (unsigned)elt->len,
+ 					       addr_str);
+ 					ret--;
+diff --git a/minissdp.c b/minissdp.c
+index 43c2002..3b4961b 100644
+--- a/minissdp.c
++++ b/minissdp.c
+@@ -698,7 +698,7 @@ SendSSDPNotify(int s, const struct sockaddr * dest, socklen_t dest_len,
+ 	}
+ 	n = sendto_or_schedule(s, bufr, l, 0, dest, dest_len);
+ 	if(n < 0) {
+-		syslog(LOG_ERR, "sendto(udp_notify=%d, %s): %m", s,
++		syslog(LOG_INFO, "sendto(udp_notify=%d, %s): %m", s,
+ 		       host ? host : "NULL");
+ 	} else if(n != l) {
+ 		syslog(LOG_NOTICE, "sendto() sent %d out of %d bytes", n, l);
+@@ -709,7 +709,7 @@ SendSSDPNotify(int s, const struct sockaddr * dest, socklen_t dest_len,
+ 	 * discovery messages SHOULD NOT be sent more than three times. */
+ 	n = sendto_schedule(s, bufr, l, 0, dest, dest_len, 250);
+ 	if(n < 0) {
+-		syslog(LOG_ERR, "sendto(udp_notify=%d, %s): %m", s,
++		syslog(LOG_INFO, "sendto(udp_notify=%d, %s): %m", s,
+ 		       host ? host : "NULL");
+ 	}
+ }
