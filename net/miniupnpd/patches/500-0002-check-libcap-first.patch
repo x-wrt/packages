@@ -1,0 +1,37 @@
+From fdc0dbe26338b14bdae0b3d0440ab936c77eaad2 Mon Sep 17 00:00:00 2001
+From: Chen Minqiang <ptpt52@gmail.com>
+Date: Sun, 5 Jul 2020 09:56:22 +0800
+Subject: [PATCH 2/6] check libcap first
+
+---
+ miniupnpd/configure | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+--- a/configure
++++ b/configure
+@@ -559,18 +559,18 @@ esac
+ if [ "$FW" = "iptables" ] || [ "$FW" = "nftables" ] ; then
+ 	# linux
+ 	if [ "$PKG_CONFIG" ] ; then
+-		if ${PKG_CONFIG} --exists libcap-ng ; then
+-			echo "detected libcap-ng `${PKG_CONFIG} --modversion libcap-ng`"
+-			echo "CFLAGS += `${PKG_CONFIG} --cflags libcap-ng`" >> config.mk
+-			echo "LDLIBS += `${PKG_CONFIG} --libs-only-l libcap-ng`" >> config.mk
+-			echo "LDFLAGS += `${PKG_CONFIG} --libs-only-L --libs-only-other libcap-ng`" >> config.mk
+-			echo "#define HAS_LIBCAP_NG" >> ${CONFIGFILE}
+-		elif ${PKG_CONFIG} --exists libcap ; then
++		if ${PKG_CONFIG} --exists libcap ; then
+ 			echo "detected libcap `${PKG_CONFIG} --modversion libcap`"
+ 			echo "CFLAGS += `${PKG_CONFIG} --cflags libcap`" >> config.mk
+ 			echo "LDLIBS += `${PKG_CONFIG} --libs-only-l libcap`" >> config.mk
+ 			echo "LDFLAGS += `${PKG_CONFIG} --libs-only-L --libs-only-other libcap`" >> config.mk
+ 			echo "#define HAS_LIBCAP" >> ${CONFIGFILE}
++		elif ${PKG_CONFIG} --exists libcap-ng ; then
++			echo "detected libcap-ng `${PKG_CONFIG} --modversion libcap-ng`"
++			echo "CFLAGS += `${PKG_CONFIG} --cflags libcap-ng`" >> config.mk
++			echo "LDLIBS += `${PKG_CONFIG} --libs-only-l libcap-ng`" >> config.mk
++			echo "LDFLAGS += `${PKG_CONFIG} --libs-only-L --libs-only-other libcap-ng`" >> config.mk
++			echo "#define HAS_LIBCAP_NG" >> ${CONFIGFILE}
+ 		fi
+ 	fi
+ fi

@@ -1,0 +1,49 @@
+From 3f6f37e98c23fa778a74a6bb1d621b0b54abf374 Mon Sep 17 00:00:00 2001
+From: Chen Minqiang <ptpt52@gmail.com>
+Date: Thu, 30 Sep 2021 10:01:52 +0800
+Subject: [PATCH 6/6] miniupnpd: fix stun POSTROUTING filter for openwrt
+
+---
+ miniupnpd/upnpstun.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+--- a/upnpstun.c
++++ b/upnpstun.c
+@@ -439,6 +439,9 @@ int perform_stun(const char *if_name, co
+ 
+ 	/* Unblock local ports */
+ 	for (i = 0; i < 4; ++i) {
++		char buffer[100];
++		snprintf(buffer, sizeof(buffer), "nft insert rule inet fw4 srcnat udp sport %hu counter return comment miniupnpd-stun", local_ports[i]);
++		system(buffer);
+ 		if (add_filter_rule2(if_name, NULL, if_addr, local_ports[i], local_ports[i], IPPROTO_UDP, "stun test") < 0) {
+ 			syslog(LOG_ERR, "%s: add_filter_rule2(..., %hu, ...) FAILED",
+ 			       "perform_stun", local_ports[i]);
+@@ -467,6 +470,8 @@ int perform_stun(const char *if_name, co
+ 
+ 	}
+ 
++	system("nft -a list chain inet fw4 srcnat | grep -o \"miniupnpd-stun.*\" | while read _ _ _ handle; do nft delete rule inet fw4 srcnat handle $handle; done");
++
+ 	/* Remove unblock for local ports */
+ 	for (i = 0; i < 4; ++i) {
+ 		delete_filter_rule(if_name, local_ports[i], IPPROTO_UDP);
+@@ -554,7 +559,8 @@ static int add_filter_rule2(const char *
+ 	iaddr = iaddr;
+ 	iport = iport;
+ 	desc = desc;
+-	snprintf(buffer, sizeof(buffer), "/sbin/iptables -t filter -I INPUT -p %d --dport %hu -j ACCEPT", proto, eport);
++	snprintf(buffer, sizeof(buffer), "nft insert rule inet fw4 input %s dport %hu counter accept comment miniupnpd-stun-%hu-%s",
++			proto == IPPROTO_UDP ? "udp" : "tcp", eport, eport, proto == IPPROTO_UDP ? "udp" : "tcp");
+ 	printf("Executing: %s\n", buffer);
+ 	return system(buffer);
+ }
+@@ -563,7 +569,7 @@ static int delete_filter_rule(const char
+ {
+ 	char buffer[100];
+ 	ifname = ifname;
+-	snprintf(buffer, sizeof(buffer), "/sbin/iptables -t filter -D INPUT -p %d --dport %hu -j ACCEPT", proto, port);
++	snprintf(buffer, sizeof(buffer), "nft -a list chain inet fw4 input | grep -o \"miniupnpd-stun-%hu-%s.*\" | while read _ _ _ handle; do nft delete rule inet fw4 input handle $handle; done", port, proto == IPPROTO_UDP ? "udp" : "tcp");
+ 	printf("Executing: %s\n", buffer);
+ 	return system(buffer);
+ }
