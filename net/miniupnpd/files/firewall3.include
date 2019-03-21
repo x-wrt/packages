@@ -20,8 +20,9 @@ iptables_prepend_rule() {
 	local chain="$3"
 	local target="$4"
 
-	$iptables "$IPTARGS" -t "$table" -I "$chain" $($iptables "$IPTARGS" -t "$table" --line-numbers -nL "$chain" | \
-		sed -ne '$s/[^0-9].*//p') -j "$target"
+	NR=`$iptables "$IPTARGS" -t "$table" --line-numbers -nL "$chain"; $iptables "$IPTARGS" -t "$table" --line-numbers -nL "$chain" | grep ".*MASQUERADE.*udp.*random-fully.*"`
+	NR=`echo "$NR" | sed -ne '$s/[^0-9].*//p'`
+	$iptables "$IPTARGS" -t "$table" -I "$chain" $NR -j "$target"
 }
 
 ADDED=0
