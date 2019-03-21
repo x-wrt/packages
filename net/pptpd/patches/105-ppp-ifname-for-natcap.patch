@@ -1,0 +1,26 @@
+diff --git a/pptpctrl.c b/pptpctrl.c
+index 54f3233..700c1e6 100644
+--- a/pptpctrl.c
++++ b/pptpctrl.c
+@@ -671,6 +671,7 @@ static int startCall(char **pppaddrs, struct in_addr *inetaddrs)
+  */
+ static void launch_pppd(char **pppaddrs, struct in_addr *inetaddrs)
+ {
++        static __thread char pppname[16];
+         char *pppd_argv[16];
+         int an = 0;
+         sigset_t sigs;
+@@ -792,7 +793,12 @@ static void launch_pppd(char **pppaddrs, struct in_addr *inetaddrs)
+         }
+ #endif
+ 
+-        pppd_argv[an++] = "remotenumber";
++        snprintf(pppname, 16, "pcap%u", getpid());
++        pppname[15] = 0;
++        pppd_argv[an++] = "ifname";
++        pppd_argv[an++] = pppname;
++
++        pppd_argv[an++] = "remotenumber";
+         pppd_argv[an++] = inet_ntoa(inetaddrs[1]);
+ 
+         /* argv arrays must always be NULL terminated */
