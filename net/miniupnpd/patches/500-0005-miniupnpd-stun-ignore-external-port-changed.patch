@@ -1,0 +1,32 @@
+From 45353b3c96ca1d04b28b15687c52482b41d3c7a9 Mon Sep 17 00:00:00 2001
+From: Chen Minqiang <ptpt52@gmail.com>
+Date: Thu, 30 Sep 2021 05:31:43 +0800
+Subject: [PATCH 5/6] miniupnpd: stun ignore external port changed
+
+---
+ miniupnpd/upnpstun.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+--- a/upnpstun.c
++++ b/upnpstun.c
+@@ -515,13 +515,17 @@ int perform_stun(const char *if_name, co
+ 	for (i = 0; i < 4; ++i) {
+ 		if (!(have_mapped_addr & (1 << i)))
+ 			continue;
+-		if (ntohs(mapped_addrs[i].sin_port) != local_ports[i] || memcmp(&mapped_addrs[i].sin_addr, ext_addr, sizeof(*ext_addr)) != 0) {
+-			/* External IP address or port was changed,
++		if (memcmp(&mapped_addrs[i].sin_addr, ext_addr, sizeof(*ext_addr)) != 0) {
++			/* External IP address was changed,
+ 			 * therefore symmetric NAT is active */
+-			syslog(LOG_NOTICE, "%s: #%d external address or port changed",
++			syslog(LOG_NOTICE, "%s: #%d external address changed",
+ 			       "perform_stun", i);
+ 			*restrictive_nat = 1;
+ 		}
++		if (ntohs(mapped_addrs[i].sin_port) != local_ports[i]) {
++			syslog(LOG_NOTICE, "%s: #%d external port changed, but assume 1:1 nat map ok",
++			       "perform_stun", i);
++		}
+ 	}
+ 
+ 	/* Otherwise we are either directly connected or behind unrestricted full-cone NAT 1:1 without filtering */
