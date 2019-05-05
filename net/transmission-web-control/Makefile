@@ -20,7 +20,6 @@ define Package/transmission-web-control
   CATEGORY:=Network
   SUBMENU:=BitTorrent
   DEPENDS:=@(PACKAGE_transmission-daemon-openssl||PACKAGE_transmission-daemon-mbedtls)
-  CONFLICTS:=transmission-web
   TITLE:=Transmission Web Control
   URL:=https://github.com/ronggang/transmission-web-control
   PKGARCH:=all
