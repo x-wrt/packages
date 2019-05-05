@@ -33,7 +33,6 @@ define Package/libseccomp/Default
   CATEGORY:=Libraries
   TITLE:=seccomp
   URL:=https://github.com/seccomp/libseccomp/wiki
-  DEPENDS:=@!arc
 endef
 
 define Package/libseccomp/Default/description
