@@ -3,17 +3,17 @@
 # Copyright (C) 2018 rosysong@rosinson.com
 #
 
-. /lib/nft-qos/core.sh
-. /lib/nft-qos/monitor.sh
-. /lib/nft-qos/dynamic.sh
-. /lib/nft-qos/static.sh
-. /lib/nft-qos/mac.sh
-. /lib/nft-qos/priority.sh
-
 START=99
 USE_PROCD=1
 
 service_triggers() {
+	. /lib/nft-qos/core.sh
+	. /lib/nft-qos/monitor.sh
+	. /lib/nft-qos/dynamic.sh
+	. /lib/nft-qos/static.sh
+	. /lib/nft-qos/mac.sh
+	. /lib/nft-qos/priority.sh
+
 	procd_add_reload_trigger nft-qos
 
 	procd_open_validate
@@ -25,6 +25,13 @@ service_triggers() {
 }
 
 start_service() {
+	. /lib/nft-qos/core.sh
+	. /lib/nft-qos/monitor.sh
+	. /lib/nft-qos/dynamic.sh
+	. /lib/nft-qos/static.sh
+	. /lib/nft-qos/mac.sh
+	. /lib/nft-qos/priority.sh
+
 	config_load nft-qos
 
 	qosdef_init_env
@@ -44,6 +51,13 @@ start_service() {
 }
 
 stop_service() {
+	. /lib/nft-qos/core.sh
+	. /lib/nft-qos/monitor.sh
+	. /lib/nft-qos/dynamic.sh
+	. /lib/nft-qos/static.sh
+	. /lib/nft-qos/mac.sh
+	. /lib/nft-qos/priority.sh
+
 	qosdef_flush_dynamic
 	qosdef_flush_static
 	qosdef_flush_mac
