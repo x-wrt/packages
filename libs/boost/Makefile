@@ -196,11 +196,11 @@ define Package/boost/config
 				bool "Shared"
 
 			config boost-runtime-static
-				depends on @(!boost-shared-libs&&!boost-static-and-shared-libs)
+				depends on (!boost-shared-libs&&!boost-static-and-shared-libs)
 				bool "Static"
 
 			config boost-runtime-static-and-shared
-				depends on @(boost-use-name-tags&&!boost-shared-libs&&!boost-static-and-shared-libs)
+				depends on (boost-use-name-tags&&!boost-shared-libs&&!boost-static-and-shared-libs)
 				bool "Both"
 		endchoice
 
@@ -237,14 +237,14 @@ define Package/boost/config
 			default n
 
 		config boost-single-thread
-			depends on @boost-use-name-tags
+			depends on boost-use-name-tags
 			bool "Single thread Support."
 			help
 				Compile Boost libraries in single-thread mode.
 			default n
 
 		config boost-build-type-complete
-			depends on @boost-use-name-tags
+			depends on boost-use-name-tags
 			bool "Complete Boost Build."
 			help
 				Builds both release and debug libs. It will take much longer to compile.
@@ -274,7 +274,7 @@ define Package/boost/config
 			select PACKAGE_boost-test
 
 		config boost-coroutine2
-			depends on !@GCC_VERSION_4_8
+			depends on !GCC_VERSION_4_8
 			bool "Boost couroutine2 support."
 			select PACKAGE_boost-coroutine
 			default n
