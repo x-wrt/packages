@@ -26,7 +26,8 @@ define Package/sqm-scripts
   CATEGORY:=Base system
   DEPENDS:=+tc +kmod-sched-core +kmod-ifb +iptables \
 	+iptables-mod-ipopt +iptables-mod-conntrack-extra \
-	+!LINUX_4_14:kmod-sched-cake +LINUX_4_14:kmod-sched-cake-oot
+	+!LINUX_4_14:kmod-sched-cake +LINUX_4_14:kmod-sched-cake-oot \
+	+@BUSYBOX_CONFIG_FEATURE_STAT_FORMAT
   TITLE:=SQM Scripts (QoS)
   PKGARCH:=all
 endef
