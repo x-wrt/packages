@@ -21,7 +21,7 @@ define Package/python3-zipp
   SUBMENU:=Python
   TITLE:=Zipfile object wrapper
   URL:=https://github.com/jaraco/zipp
-  DEPENDS:=+python3-light +python-more-itertools
+  DEPENDS:=+python3-light +python3-more-itertools
   VARIANT:=python3
 endef
 
