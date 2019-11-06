@@ -9,7 +9,7 @@ enabled miniupnpd || exit 0
 # - check only on ifup (otherwise lease updates etc would cause
 #   miniupnpd state loss)
 
-[ "$ACTION" != "ifup" ] && service_running miniupnpd && exit 0
+[ "$ACTION" != "ifup" -a "$ACTION" != "ifupdate" ] && service_running miniupnpd && exit 0
 
 tmpconf="/var/etc/miniupnpd.conf"
 extiface=$(uci get upnpd.config.external_iface)
