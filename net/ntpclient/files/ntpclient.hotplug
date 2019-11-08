@@ -41,12 +41,15 @@ start_ntpclient() {
 	config_foreach check_server ntpserver
 	[ -z "$SERVER" ] && exit 0
 	logger starting ntpclient
+	TO="timeout" && which timeout >/dev/null 2>&1 && timeout -t1 pwd >/dev/null 2>&1 && TO="timeout -t"
+	$TO 5 ping -c1 -W3 $SERVER >/dev/null 2>&1 || return
 	$NTPC ${COUNT:+-c $COUNT} ${INTERVAL:+-i $INTERVAL} -s -l -D -p $PORT -h $SERVER 2> /dev/null
 }
 
 stop_ntpclient() {
 	logger stopping ntpclient
 	killall ntpclient
+	killall -9 ntpclient
 }
 
 load_settings() {
