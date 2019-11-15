@@ -57,7 +57,7 @@ endef
 define Package/ddns-scripts_aliyun
     $(call Package/ddns-scripts/Default)
     TITLE:=DDNS extension for AliYun.com
-    DEPENDS:=ddns-scripts +wget +openssl-util
+    DEPENDS:=ddns-scripts +wget +mbed-hmac-sha1
 endef
 define Package/ddns-scripts_aliyun/description
 	Dynamic DNS Client scripts extension for AliYun.com
