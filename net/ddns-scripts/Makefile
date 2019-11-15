@@ -54,6 +54,16 @@ define Package/ddns-scripts/config
 endef
 
 ###### *************************************************************************
+define Package/ddns-scripts_aliyun
+    $(call Package/ddns-scripts/Default)
+    TITLE:=DDNS extension for AliYun.com
+    DEPENDS:=ddns-scripts +wget +openssl-util
+endef
+define Package/ddns-scripts_aliyun/description
+	Dynamic DNS Client scripts extension for AliYun.com
+endef
+
+###### *************************************************************************
 define Package/ddns-scripts_cloudflare.com-v4
     $(call Package/ddns-scripts/Default)
     TITLE:=CloudFlare.com API v4 (requires cURL)
@@ -229,6 +239,45 @@ define Package/ddns-scripts/prerm
 	# clear LuCI indexcache
 	rm -f /tmp/luci-indexcache >/dev/null 2>&1
 	exit 0	# suppress errors
+endef
+
+###### *************************************************************************
+define Package/ddns-scripts_aliyun/preinst
+	#!/bin/sh
+	# if NOT run buildroot then stop service
+	[ -z "$${IPKG_INSTROOT}" ] && /etc/init.d/ddns stop >/dev/null 2>&1
+	exit 0 # suppress errors
+endef
+
+define Package/ddns-scripts_aliyun/install
+	$(INSTALL_DIR) $(1)/usr/lib/ddns
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/files/update_aliyun_com.sh $(1)/usr/lib/ddns
+endef
+
+define Package/ddns-scripts_aliyun/postinst
+	#!/bin/sh
+	# remove old services file entries
+	/bin/sed -i '/aliyun\.com/d' $${IPKG_INSTROOT}/etc/ddns/services >/dev/null 2>&1
+	/bin/sed -i '/aliyun\.com/d' $${IPKG_INSTROOT}/etc/ddns/services_ipv6 >/dev/null 2>&1
+	# and create new
+	printf "%s\\t\\t%s\\n" '"aliyun.com"' '"update_aliyun_com.sh"' >> $${IPKG_INSTROOT}/etc/ddns/services
+	printf "%s\\t\\t%s\\n" '"aliyun.com"' '"update_aliyun_com.sh"' >> $${IPKG_INSTROOT}/etc/ddns/services_ipv6
+	# on real system restart service if enabled
+	[ -z "$${IPKG_INSTROOT}" ] && {
+		/etc/init.d/ddns enabled && \
+			/etc/init.d/ddns start >/dev/null 2>&1
+	}
+	exit 0 # suppress errors
+endef
+
+define Package/ddns-scripts_aliyun/prerm
+	#!/bin/sh
+	# if NOT run buildroot then stop service
+	[ -z "$${IPKG_INSTROOT}" ] && /etc/init.d/ddns stop >/dev/null 2>&1
+	# remove services file entries
+	/bin/sed -i '/aliyun\.com/d' $${IPKG_INSTROOT}/etc/ddns/services >/dev/null 2>&1
+	/bin/sed -i '/aliyun\.com/d' $${IPKG_INSTROOT}/etc/ddns/services_ipv6 >/dev/null 2>&1
+	exit 0 # suppress errors
 endef
 
 ###### *************************************************************************
@@ -555,6 +604,7 @@ endef
 
 ###### *************************************************************************
 $(eval $(call BuildPackage,ddns-scripts))
+$(eval $(call BuildPackage,ddns-scripts_aliyun))
 $(eval $(call BuildPackage,ddns-scripts_cloudflare.com-v4))
 $(eval $(call BuildPackage,ddns-scripts_freedns_42_pl))
 $(eval $(call BuildPackage,ddns-scripts_godaddy.com-v1))
