@@ -57,6 +57,16 @@ define Package/ddns-scripts_service/description
 endef
 
 
+define Package/ddns-scripts_aliyun
+    $(call Package/ddns-scripts/Default)
+    TITLE:=DDNS extension for AliYun.com
+    DEPENDS:=ddns-scripts +wget +hmac-sha1-util
+endef
+define Package/ddns-scripts_aliyun/description
+	Dynamic DNS Client scripts extension for AliYun.com
+endef
+
+
 define Package/ddns-scripts_cloudflare.com-v4
   $(call Package/ddns-scripts/Default)
   TITLE:=Extension for cloudflare.com API v4
@@ -231,6 +241,24 @@ define Package/ddns-scripts_service/install
 endef
 
 
+define Package/ddns-scripts_aliyun/install
+	$(INSTALL_DIR) $(1)/usr/lib/ddns
+	$(INSTALL_BIN) ./files/update_aliyun_com.sh $(1)/usr/lib/ddns
+
+	$(INSTALL_DIR) $(1)/usr/share/ddns/services
+	$(INSTALL_DATA) ./files/usr/share/ddns/services/aliyun.com.json \
+		$(1)/usr/share/ddns/services/
+endef
+
+define Package/ddns-scripts_aliyun/prerm
+#!/bin/sh
+if [ -z "$${IPKG_INSTROOT}" ]; then
+	/etc/init.d/ddns stop
+fi
+exit 0
+endef
+
+
 define Package/ddns-scripts_cloudflare.com-v4/install
 	$(INSTALL_DIR) $(1)/usr/lib/ddns
 	$(INSTALL_BIN) ./files/usr/lib/ddns/update_cloudflare_com_v4.sh \
@@ -385,6 +413,7 @@ endef
 
 $(eval $(call BuildPackage,ddns-scripts))
 $(eval $(call BuildPackage,ddns-scripts_service))
+$(eval $(call BuildPackage,ddns-scripts_aliyun))
 $(eval $(call BuildPackage,ddns-scripts_cloudflare.com-v4))
 $(eval $(call BuildPackage,ddns-scripts_freedns_42_pl))
 $(eval $(call BuildPackage,ddns-scripts_godaddy.com-v1))
