@@ -17,7 +17,7 @@
 [ -z "$password" ] && write_log 14 "配置错误！保存阿里云API访问密钥的'密码'不能为空"
 
 # 检查外部调用工具
-[ -n "$WGET_SSL" ] || write_log 13 "使用阿里云API需要 GNU Wget 支持，请先安装"
+[ -n "$WGET_SSL" ] || write_log 4 "使用阿里云API建议安装 GNU Wget 支持，否则部分功能失效"
 command -v sed >/dev/null 2>&1 || write_log 13 "使用阿里云API需要 sed 支持，请先安装"
 command -v mbed-hmac-sha1 >/dev/null 2>&1 || write_log 13 "使用阿里云API需要 mbed-hmac-sha1 支持，请先安装"
 
@@ -42,8 +42,11 @@ __DOMAIN="${domain#*@}"
 # 构造基本通信命令
 build_command() {
 	__CMDBASE="$WGET_SSL -nv -t 1 -O $DATFILE -o $ERRFILE"
+	if ! [ -n "$WGET_SSL" ]; then
+		__CMDBASE="$WGET --timeout=60 -qO $DATFILE"
+	fi
 	# 绑定用于通信的主机/IP
-	if [ -n "$bind_network" ]; then
+	if [ -n "$bind_network" ] && [ -n "$WGET_SSL" ]; then
 		local bind_ip run_prog
 		[ $use_ipv6 -eq 0 ] && run_prog="network_get_ipaddr" || run_prog="network_get_ipaddr6"
 		eval "$run_prog bind_ip $bind_network" || \
@@ -68,7 +71,8 @@ build_command() {
 		fi
 	fi
 	# 如果没有设置，禁用代理 (这可能是 .wgetrc 或环境设置错误)
-	[ -z "$proxy" ] && __CMDBASE="$__CMDBASE --no-proxy"
+	[ -z "$proxy" ] && [ -n "$WGET_SSL" ] && __CMDBASE="$__CMDBASE --no-proxy"
+	[ -z "$proxy" ] && ! [ -n "$WGET_SSL" ] && __CMDBASE="$__CMDBASE --proxy=off"
 }
 
 # 用于阿里云API的通信函数
