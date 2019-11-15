@@ -19,7 +19,7 @@
 # 检查外部调用工具
 [ -n "$WGET_SSL" ] || write_log 13 "使用阿里云API需要 GNU Wget 支持，请先安装"
 command -v sed >/dev/null 2>&1 || write_log 13 "使用阿里云API需要 sed 支持，请先安装"
-command -v openssl >/dev/null 2>&1 || write_log 13 "使用阿里云API需要 openssl-util 支持，请先安装"
+command -v mbed-hmac-sha1 >/dev/null 2>&1 || write_log 13 "使用阿里云API需要 mbed-hmac-sha1 支持，请先安装"
 
 # 包含用于解析 JSON 格式返回值的函数
 . /usr/share/libubox/jshn.sh
@@ -153,9 +153,9 @@ build_Request() {
 	# 构造用于计算签名的字符串
 	string="${HTTP_METHOD}${__SEPARATOR}"$(percentEncode "/")"${__SEPARATOR}"$(percentEncode "$string")
 	# 字符串计算签名HMAC值
-	local signature=$(echo -n "$string" | openssl dgst -sha1 -hmac "${password}&" -binary)
+	local signature=$(echo -n "$string" | mbed-hmac-sha1 "${password}&")
 	# HMAC值编码成字符串，得到签名值
-	signature=$(echo -n "$signature" | openssl base64)
+	signature=$(echo -n "$signature" | base64)
 
 	# 附加签名参数
 	string="Signature=$signature"; __URLARGS="$__URLARGS${__SEPARATOR}"$(percentEncode "${string%%=*}")"="$(percentEncode "${string#*=}")
