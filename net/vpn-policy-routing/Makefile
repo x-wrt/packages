@@ -16,7 +16,6 @@ define Package/vpn-policy-routing
 	CATEGORY:=Network
 	TITLE:=VPN Policy-Based Routing Service
 	DEPENDS:=+ipset +iptables +resolveip +kmod-ipt-ipset +iptables-mod-ipopt +!BUSYBOX_CONFIG_IP:ip-full
-	CONFLICTS:=vpnbypass
 	PKGARCH:=all
 endef
 
