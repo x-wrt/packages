@@ -21,7 +21,6 @@ endef
 
 define Package/nginx-util
   $(Package/nginx-util/default)
-  CONFLICTS:=nginx-ssl-util
 endef
 
 define Package/nginx-ssl-util/default
@@ -35,7 +34,6 @@ define Package/nginx-ssl-util
   $(Package/nginx-ssl-util/default)
   TITLE+= (using PCRE)
   DEPENDS+= +libpcre
-  CONFLICTS+= nginx-ssl-util-nopcre
 endef
 
 define Package/nginx-ssl-util-nopcre
