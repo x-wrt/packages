@@ -54,7 +54,7 @@ void create_lan_listen()  // create empty files for compatibility:
     catch (const std::runtime_error&) { /* do nothing about it */
     }
 #else
-    ips.emplace_back("127.0.0.1");
+    ips.emplace_back("0.0.0.0");
 #endif
 
     std::string listen = std::string{file_comment_auto_created};
