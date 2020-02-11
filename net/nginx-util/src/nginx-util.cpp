@@ -34,6 +34,7 @@ void create_lan_listen()
     };
 
 #ifndef NO_UBUS
+#if 0
     try {
         auto loopback_status=ubus::call("network.interface.loopback", "status");
 
@@ -63,6 +64,10 @@ void create_lan_listen()
             add_listen("[", static_cast<const char *>(blobmsg_data(ip)), "]");
         }
     } catch (const std::runtime_error &) { /* do nothing about it */ }
+#else
+    add_listen("", "0.0.0.0", "");
+    add_listen("[", "::", "]");
+#endif
 #else
     add_listen("", "127.0.0.1", "");
 #endif
