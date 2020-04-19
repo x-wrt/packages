@@ -45,10 +45,8 @@ TARGET_LDFLAGS += -Wl,--gc-sections,--as-needed
 
 MAKE_FLAGS += \
 	TARGET_OPENWRT=1 TEST=0 LIBS="" \
-	CC="$(TARGET_CC) -DIPTABLES_143 -lip4tc -luuid \
-		$(if $(CONFIG_IPV6),-lip6tc)" \
-	CONFIG_OPTIONS="--portinuse --leasefile --igd2 \
-		$(if $(CONFIG_IPV6),--ipv6)" \
+	CC="$(TARGET_CC) -DIPTABLES_143 -lip4tc -luuid" \
+	CONFIG_OPTIONS="--portinuse --leasefile --igd2" \
 	-f Makefile.linux miniupnpd
 
 define Package/miniupnpd/install
