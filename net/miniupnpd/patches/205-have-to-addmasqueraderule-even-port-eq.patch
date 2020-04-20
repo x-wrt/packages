@@ -1,0 +1,30 @@
+From ce559fee47900ac2af25abeecb6f83336dfca443 Mon Sep 17 00:00:00 2001
+From: Chen Minqiang <ptpt52@gmail.com>
+Date: Mon, 20 Apr 2020 08:25:02 +0800
+Subject: [PATCH] have to addmasqueraderule even port eq
+
+---
+ netfilter/iptcrdr.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/netfilter/iptcrdr.c b/netfilter/iptcrdr.c
+index 03d82bb..2f7f658 100644
+--- a/netfilter/iptcrdr.c
++++ b/netfilter/iptcrdr.c
+@@ -229,13 +229,11 @@ add_redirect_rule2(const char * ifname,
+ 		 * as possible, within the constraints of the rule given by
+ 		 * the user.
+ 		 * This means we won't remap ports unless we have to. */
+-		if(iport != eport) {
+ 			/* TODO : check if this should be done only with UDP */
+ 			r = addmasqueraderule(proto, eport, iaddr, iport, rhost/*, ifname*/);
+ 			if(r < 0) {
+ 				syslog(LOG_NOTICE, "add_redirect_rule2(): addmasqueraderule returned %d", r);
+ 			}
+-		}
+ #endif /* ENABLE_PORT_TRIGGERING */
+ 	}
+ 	return r;
+-- 
+2.17.1
+
