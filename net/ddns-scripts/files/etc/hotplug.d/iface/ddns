@@ -33,7 +33,7 @@ ddns_service() {
 }
 
 case "$ACTION" in
-	ifup)
+	ifup|ifupdate)
 		/etc/init.d/ddns enabled && ddns_service "ifup" "$INTERFACE"
 		;;
 	ifdown)
