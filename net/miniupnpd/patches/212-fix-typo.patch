@@ -1,0 +1,26 @@
+From 3f05351670a4f4334da406b57413f1967a5b6dc9 Mon Sep 17 00:00:00 2001
+From: Chen Minqiang <ptpt52@gmail.com>
+Date: Mon, 20 Apr 2020 12:40:53 +0800
+Subject: [PATCH 2/2] fix typo
+
+Signed-off-by: Chen Minqiang <ptpt52@gmail.com>
+---
+ netfilter/iptcrdr.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/netfilter/iptcrdr.c b/netfilter/iptcrdr.c
+index 81b6cc0..65599e8 100644
+--- a/netfilter/iptcrdr.c
++++ b/netfilter/iptcrdr.c
+@@ -856,7 +856,7 @@ delete_redirect_and_filter_rules(unsigned short eport, int proto)
+ 				{
+ 					const struct ipt_udp * info;
+ 					info = (const struct ipt_udp *)match->data;
+-					iport = info->dpts[0];
++					iport = info->spts[0];
+ 				}
+ 
+ 				index = i;
+-- 
+2.17.1
+
