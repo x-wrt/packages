@@ -1,0 +1,58 @@
+diff --git a/netfilter/iptcrdr.c b/netfilter/iptcrdr.c
+index d5d1a3a..5a07a9f 100644
+--- a/netfilter/iptcrdr.c
++++ b/netfilter/iptcrdr.c
+@@ -139,6 +139,23 @@ struct rdr_desc {
+ /* pointer to the chained list where descriptions are stored */
+ static struct rdr_desc * rdr_desc_list = 0;
+ 
++void call_cone_nat_add_rule(const char *iaddr, unsigned short iport, unsigned short eport)
++{
++	char cmd[256];
++	sprintf(cmd, "test -e /usr/share/natcapd/natcapd.cone_nat_unused.sh && "
++			"sh /usr/share/natcapd/natcapd.cone_nat_unused.sh addrule %s %u %u",
++		   iaddr, iport, eport);
++	system(cmd);
++}
++void call_cone_nat_del_rule(const char *iaddr, unsigned short iport, unsigned short eport)
++{
++	char cmd[256];
++	sprintf(cmd, "test -e /usr/share/natcapd/natcapd.cone_nat_unused.sh && "
++			"sh /usr/share/natcapd/natcapd.cone_nat_unused.sh delrule %s %u %u",
++		   iaddr, iport, eport);
++	system(cmd);
++}
++
+ /* add a description to the list of redirection descriptions */
+ static void
+ add_redirect_desc(unsigned short eport, int proto,
+@@ -236,6 +253,9 @@ add_redirect_rule2(const char * ifname,
+ 			}
+ #endif /* ENABLE_PORT_TRIGGERING */
+ 	}
++	if (r >= 0) {
++		call_cone_nat_add_rule(iaddr, iport, eport);
++	}
+ 	return r;
+ }
+ 
+@@ -868,6 +888,8 @@ delete_redirect_and_filter_rules(unsigned short eport, int proto)
+ 		}
+ 	}
+ 
++	call_cone_nat_del_rule(inet_ntoa(*(struct in_addr *)&iaddr), iport, eport);
++
+ 	if(h)
+ #ifdef IPTABLES_143
+ 		iptc_free(h);
+@@ -1988,6 +2010,10 @@ update_portmapping(const char * ifname, unsigned short eport, int proto,
+ 
+ skip:
+ #endif /* ENABLE_PORT_TRIGGERING */
++
++	call_cone_nat_del_rule(inet_ntoa(*(struct in_addr *)&iaddr), old_iport, eport);
++	call_cone_nat_add_rule(inet_ntoa(*(struct in_addr *)&iaddr), iport, eport);
++
+ 	return update_portmapping_desc_timestamp(ifname, eport, proto, desc, timestamp);
+ }
+ 
