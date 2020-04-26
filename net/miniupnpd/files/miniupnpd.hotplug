@@ -1,6 +1,6 @@
 #!/bin/sh /etc/rc.common
 
-enabled miniupnpd || exit 0
+/etc/init.d/miniupnpd enabled || exit 0
 
 # If miniupnpd is not running:
 # - check on _any_ event (even updates may contribute to network_find_wan*)
