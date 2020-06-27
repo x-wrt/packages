@@ -28,7 +28,7 @@ include $(INCLUDE_DIR)/version.mk
 define Package/miniupnpd
   SECTION:=net
   CATEGORY:=Network
-  DEPENDS:=+iptables +libip4tc +libuuid +libcap-ng
+  DEPENDS:=+iptables +libip4tc +libuuid +libcap
   TITLE:=Lightweight UPnP IGD, NAT-PMP & PCP daemon
   SUBMENU:=Firewall
   URL:=https://miniupnp.tuxfamily.org/
