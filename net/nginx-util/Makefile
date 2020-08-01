@@ -21,7 +21,7 @@ define Package/nginx-ssl-util/default
   # TODO: remove after a transition period (together with below and pkg nginx):
   # It actually removes nginx-util (replacing it by a dummy pkg) to avoid
   # conflicts with nginx-ssl-util*
-  EXTRA_DEPENDS:=nginx-util (>=1.4-2)
+  #EXTRA_DEPENDS:=nginx-util (>=1.4-2)
 endef
 
 
