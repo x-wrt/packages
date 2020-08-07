@@ -36,6 +36,57 @@ MM_UNREACHABLE=""
 
 command -v ip6tables > /dev/null
 NO_IPV6=$?
+NEED_IPV4=1
+NEED_IPV6=1
+
+mwan3_ipv4_needed_test()
+{
+	local idx=0
+	local tid family enabled
+
+	while uci get mwan3.@interface[$idx] >/dev/null 2>&1 ; do
+		tid=$((idx+1))
+		family="$(uci -q get mwan3.@interface[$idx].family)"
+		[ -z "$family" ] && family="ipv4"
+		enabled="$(uci -q get mwan3.@interface[$idx].enabled)"
+		[ -z "$enabled" ] && enabled="0"
+		[ "$family" = "ipv4" ] && [ "$enabled" = "1" ] && return 0
+		idx=$((idx+1))
+	done
+
+	return 1
+}
+mwan3_ipv4_needed_test || NEED_IPV4=0
+mwan3_ipv4_needed()
+{
+	[ $NEED_IPV4 = 0 ] && return 1
+	return 0
+}
+
+mwan3_ipv6_needed_test()
+{
+	local idx=0
+	local tid family enabled
+
+	while uci get mwan3.@interface[$idx] >/dev/null 2>&1 ; do
+		tid=$((idx+1))
+		family="$(uci -q get mwan3.@interface[$idx].family)"
+		[ -z "$family" ] && family="ipv4"
+		enabled="$(uci -q get mwan3.@interface[$idx].enabled)"
+		[ -z "$enabled" ] && enabled="0"
+		[ "$family" = "ipv6" ] && [ "$enabled" = "1" ] && return 0
+		idx=$((idx+1))
+	done
+
+	return 1
+}
+mwan3_ipv6_needed_test || NEED_IPV6=0
+mwan3_ipv6_needed()
+{
+	[ $NO_IPV6 -eq 0 ] || return 1
+	[ $NEED_IPV6 = 0 ] && return 1
+	return 0
+}
 
 # return true(=0) if has any mwan3 interface enabled
 # otherwise return false
@@ -89,6 +140,8 @@ mwan3_rtmon_ipv6()
 
 	local tid family enabled
 
+	[ $NO_IPV6 -eq 0 ] || return $ret
+
 	mkdir -p /tmp/mwan3rtmon
 	($IP6 route list table main  | grep -v "^default\|^::/0\|^fe80::/64\|^unreachable" | sort -n; echo empty fixup) >/tmp/mwan3rtmon/ipv6.main
 	while uci get mwan3.@interface[$idx] >/dev/null 2>&1 ; do
@@ -120,44 +173,6 @@ mwan3_rtmon_ipv6()
 	done
 	rm -f /tmp/mwan3rtmon/ipv6.*
 	return $ret
-}
-
-mwan3_ipv4_needed()
-{
-	local idx=0
-	local tid family enabled
-
-	while uci get mwan3.@interface[$idx] >/dev/null 2>&1 ; do
-		tid=$((idx+1))
-		family="$(uci -q get mwan3.@interface[$idx].family)"
-		[ -z "$family" ] && family="ipv4"
-		enabled="$(uci -q get mwan3.@interface[$idx].enabled)"
-		[ -z "$enabled" ] && enabled="0"
-		[ "$family" = "ipv4" ] && [ "$enabled" = "1" ] && return 0
-		idx=$((idx+1))
-	done
-
-	return 1
-}
-
-mwan3_ipv6_needed()
-{
-	local idx=0
-	local tid family enabled
-
-	[ $NO_IPV6 -eq 0 ] || return 1
-
-	while uci get mwan3.@interface[$idx] >/dev/null 2>&1 ; do
-		tid=$((idx+1))
-		family="$(uci -q get mwan3.@interface[$idx].family)"
-		[ -z "$family" ] && family="ipv4"
-		enabled="$(uci -q get mwan3.@interface[$idx].enabled)"
-		[ -z "$enabled" ] && enabled="0"
-		[ "$family" = "ipv6" ] && [ "$enabled" = "1" ] && return 0
-		idx=$((idx+1))
-	done
-
-	return 1
 }
 
 # counts how many bits are set to 1
