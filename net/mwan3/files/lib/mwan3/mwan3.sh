@@ -122,6 +122,24 @@ mwan3_rtmon_ipv6()
 	return $ret
 }
 
+mwan3_ipv4_needed()
+{
+	local idx=0
+	local tid family enabled
+
+	while uci get mwan3.@interface[$idx] >/dev/null 2>&1 ; do
+		tid=$((idx+1))
+		family="$(uci -q get mwan3.@interface[$idx].family)"
+		[ -z "$family" ] && family="ipv4"
+		enabled="$(uci -q get mwan3.@interface[$idx].enabled)"
+		[ -z "$enabled" ] && enabled="0"
+		[ "$family" = "ipv4" ] && [ "$enabled" = "1" ] && return 0
+		idx=$((idx+1))
+	done
+
+	return 1
+}
+
 mwan3_ipv6_needed()
 {
 	local idx=0
@@ -315,10 +333,17 @@ mwan3_set_connected_iptables()
 {
 	local connected_network_v6 source_network_v6
 
-	$IPS -! create mwan3_connected_v4 hash:net
-	$IPS create mwan3_connected_v4_temp hash:net
+	mwan3_ipv4_needed && {
+		$IPS -! create mwan3_connected_v4 hash:net
+		$IPS create mwan3_connected_v4_temp hash:net
 
-	mwan3_set_connected_ipv4
+		mwan3_set_connected_ipv4
+
+		$IPS -! create mwan3_connected list:set 2>/dev/null
+		$IPS -! add mwan3_connected mwan3_connected_v4
+		$IPS -! create mwan3_dynamic_v4 hash:net
+		$IPS -! add mwan3_connected mwan3_dynamic_v4
+	}
 
 	mwan3_ipv6_needed && {
 		$IPS -! create mwan3_connected_v6 hash:net family inet6
@@ -337,17 +362,12 @@ mwan3_set_connected_iptables()
 		done
 		$IPS swap mwan3_source_v6_temp mwan3_source_v6
 		$IPS destroy mwan3_source_v6_temp
+
+		$IPS -! create mwan3_connected list:set 2>/dev/null
+		$IPS -! add mwan3_connected mwan3_connected_v6
+		$IPS -! create mwan3_dynamic_v6 hash:net family inet6
+		$IPS -! add mwan3_connected mwan3_dynamic_v6
 	}
-
-	$IPS -! create mwan3_connected list:set
-	$IPS -! add mwan3_connected mwan3_connected_v4
-	mwan3_ipv6_needed && $IPS -! add mwan3_connected mwan3_connected_v6
-
-	$IPS -! create mwan3_dynamic_v4 hash:net
-	$IPS -! add mwan3_connected mwan3_dynamic_v4
-
-	mwan3_ipv6_needed && $IPS -! create mwan3_dynamic_v6 hash:net family inet6
-	mwan3_ipv6_needed && $IPS -! add mwan3_connected mwan3_dynamic_v6
 }
 
 mwan3_set_general_rules()
@@ -356,6 +376,7 @@ mwan3_set_general_rules()
 
 	for IP in "$IP4" "$IP6"; do
 		[ "$IP" = "$IP6" ] && ! mwan3_ipv6_needed && continue
+		[ "$IP" = "$IP4" ] && ! mwan3_ipv4_needed && continue
 		RULE_NO=$(($MM_BLACKHOLE+2000))
 		if [ -z "$($IP rule list | awk -v var="$RULE_NO:" '$1 == var')" ]; then
 			$IP rule add pref $RULE_NO fwmark $MMX_BLACKHOLE/$MMX_MASK blackhole
@@ -374,6 +395,7 @@ mwan3_set_general_iptables()
 
 	for IPT in "$IPT4" "$IPT6"; do
 		[ "$IPT" = "$IPT6" ] && ! mwan3_ipv6_needed && continue
+		[ "$IPT" = "$IPT4" ] && ! mwan3_ipv4_needed && continue
 		if ! $IPT -S mwan3_ifaces_in &> /dev/null; then
 			$IPT -N mwan3_ifaces_in
 		fi
@@ -459,7 +481,7 @@ mwan3_create_iface_iptables()
 
 	[ -n "$id" ] || return 0
 
-	if [ "$family" = "ipv4" ]; then
+	if [ "$family" = "ipv4" ] && mwan3_ipv4_needed; then
 		connected_name=mwan3_connected
 		IPT="$IPT4"
 		$IPS -! create $connected_name list:set
@@ -591,7 +613,7 @@ mwan3_create_iface_rules()
 
 	[ -n "$id" ] || return 0
 
-	if [ "$family" = "ipv4" ]; then
+	if [ "$family" = "ipv4" ] && mwan3_ipv4_needed; then
 
 		while [ -n "$($IP4 rule list | awk '$1 == "'$(($id+1000)):'"')" ]; do
 			$IP4 rule del pref $(($id+1000))
@@ -629,7 +651,7 @@ mwan3_delete_iface_rules()
 
 	[ -n "$id" ] || return 0
 
-	if [ "$family" = "ipv4" ]; then
+	if [ "$family" = "ipv4" ] && mwan3_ipv4_needed; then
 
 		while [ -n "$($IP4 rule list | awk '$1 == "'$(($id+1000)):'"')" ]; do
 			$IP4 rule del pref $(($id+1000))
@@ -737,7 +759,7 @@ mwan3_set_policy()
 		IPT="$IPT6"
 	fi
 
-	if [ "$family" = "ipv4" ] && [ $is_offline -eq 0 ]; then
+	if [ "$family" = "ipv4" ] && mwan3_ipv4_needed && [ $is_offline -eq 0 ]; then
 		if [ "$metric" -lt "$lowest_metric_v4" ]; then
 			is_lowest=1
 			total_weight_v4=$weight
@@ -809,6 +831,7 @@ mwan3_create_policies_iptables()
 
 	for IPT in "$IPT4" "$IPT6"; do
 		[ "$IPT" = "$IPT6" ] && ! mwan3_ipv6_needed && continue
+		[ "$IPT" = "$IPT4" ] && ! mwan3_ipv4_needed && continue
 		if ! $IPT -S "mwan3_policy_$1" &> /dev/null; then
 			$IPT -N "mwan3_policy_$1"
 		fi
@@ -865,6 +888,7 @@ mwan3_set_sticky_iptables()
 
 			for IPT in "$IPT4" "$IPT6"; do
 				[ "$IPT" = "$IPT6" ] && ! mwan3_ipv6_needed && continue
+				[ "$IPT" = "$IPT4" ] && ! mwan3_ipv4_needed && continue
 				if [ -n "$($IPT -S "mwan3_iface_in_$1" 2> /dev/null)" ]; then
 					$IPT -I "mwan3_rule_$rule" \
 						-m mark --mark $(mwan3_id2mask id MMX_MASK)/$MMX_MASK \
@@ -942,6 +966,7 @@ mwan3_set_user_iptables_rule()
 
 				for IPT in "$IPT4" "$IPT6"; do
 					[ "$IPT" = "$IPT6" ] && ! mwan3_ipv6_needed && continue
+					[ "$IPT" = "$IPT4" ] && ! mwan3_ipv4_needed && continue
 					if ! $IPT -S "$policy" &> /dev/null; then
 						$IPT -N "$policy"
 					fi
@@ -967,6 +992,7 @@ mwan3_set_user_iptables_rule()
 
 				for IPT in "$IPT4" "$IPT6"; do
 					[ "$IPT" = "$IPT6" ] && ! mwan3_ipv6_needed && continue
+					[ "$IPT" = "$IPT4" ] && ! mwan3_ipv4_needed && continue
 					$IPT -A "mwan3_rule_$1" \
 						-m mark --mark 0/$MMX_MASK \
 						-j "$policy"
@@ -984,6 +1010,7 @@ mwan3_set_user_iptables_rule()
 
 				for IPT in "$IPT4" "$IPT6"; do
 					[ "$IPT" = "$IPT6" ] && ! mwan3_ipv6_needed && continue
+					[ "$IPT" = "$IPT4" ] && ! mwan3_ipv4_needed && continue
 					if ! $IPT -S "$policy" &> /dev/null; then
 						$IPT -N "$policy"
 					fi
@@ -993,6 +1020,7 @@ mwan3_set_user_iptables_rule()
 		fi
 		for IPT in "$IPT4" "$IPT6"; do
 			[ "$IPT" = "$IPT6" ] && ! mwan3_ipv6_needed && continue
+			[ "$IPT" = "$IPT4" ] && ! mwan3_ipv4_needed && continue
 			[ "$family" = "ipv4" ] && [ "$IPT" = "$IPT6" ] && continue
 			[ "$family" = "ipv6" ] && [ "$IPT" = "$IPT4" ] && continue
 			[ "$global_logging" = "1" ] && [ "$rule_logging" = "1" ] && {
@@ -1029,6 +1057,7 @@ mwan3_set_user_rules()
 
 	for IPT in "$IPT4" "$IPT6"; do
 		[ "$IPT" = "$IPT6" ] && ! mwan3_ipv6_needed && continue
+		[ "$IPT" = "$IPT4" ] && ! mwan3_ipv4_needed && continue
 		if ! $IPT -S mwan3_rules &> /dev/null; then
 			$IPT -N mwan3_rules
 		fi
