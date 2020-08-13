@@ -9,6 +9,8 @@
 
 [ "$ACTION" != "ifup" ] && /etc/init.d/miniupnpd running && exit 0
 
+lock /var/run/miniupnpd.lock
+
 tmpconf="/var/etc/miniupnpd.conf"
 external_iface=$(uci -q get upnpd.config.external_iface)
 external_iface6=$(uci -q get upnpd.config.external_iface6)
@@ -37,8 +39,16 @@ else
 	fi
 fi
 
-[ "$DEVICE" != "$ifname" ] && [ "$DEVICE" != "$ifname6" ] && exit 0
+if [ "$DEVICE" != "$ifname" ] && [ "$DEVICE" != "$ifname6" ]; then
+	lock -u /var/run/miniupnpd.lock
+	exit 0
+fi
 
-grep -qs "^ext_ifname=$ifname" "$tmpconf" && grep -qs "^ext_ifname6=$ifname6" "$tmpconf" && exit 0
+if grep -qs "^ext_ifname=$ifname" "$tmpconf" && grep -qs "^ext_ifname6=$ifname6" "$tmpconf"; then
+	lock -u /var/run/miniupnpd.lock
+	exit 0
+fi
 
 /etc/init.d/miniupnpd restart
+
+lock -u /var/run/miniupnpd.lock
