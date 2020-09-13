@@ -101,7 +101,7 @@ define Package/iiod
   CATEGORY:=Network
   TITLE:=Linux IIO daemon
   URL:=https://github.com/analogdevicesinc/libiio
-  DEPENDS:=+libiio @LIBIIO_XML_BACKEND
+  DEPENDS:=+libiio
 endef
 
 define Package/iiod/description
