@@ -7,11 +7,9 @@
 . /lib/mwan3/common.sh
 
 SCRIPTNAME="mwan3-hotplug"
-[ "$ACTION" = "ifup" ] || [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "connected" ] || [ "$ACTION" = "disconnected" ] || exit 1
+[ "$ACTION" = "ifup" ] || [ "$ACTION" = "ifdown" ] ||  [ "$ACTION" = "connected" ] || [ "$ACTION" = "disconnected" ] || exit 1
 [ -n "$INTERFACE" ] || exit 2
-[ "$FIRSTCONNECT" = "1" ] || [ "$MWAN3_SHUTDOWN" = "1" ] && exit 0
-
-if { [ "$ACTION" = "ifup" ] || [ "$ACTION" = "connected" ] ; } && [ -z "$DEVICE" ]; then
+if ( [ "$ACTION" = "ifup" ] || [ "$ACTION" = "connected" ] ) && [ -z "$DEVICE" ]; then
 	LOG notice "$ACTION called on $INTERFACE with no device set"
 	exit 3
 fi
@@ -19,9 +17,10 @@ fi
 [ "$MWAN3_STARTUP" = 1 ] || mwan3_lock "$ACTION" "$INTERFACE"
 
 config_load mwan3
-/etc/init.d/mwan3 running || {
+config_get_bool enabled globals 'enabled' '0'
+[ "${enabled}" -gt 0 ] || {
 	[ "$MWAN3_STARTUP" = 1 ] || mwan3_unlock "$ACTION" "$INTERFACE"
-	LOG notice "mwan3 hotplug $ACTION on $INTERFACE not called because globally disabled"
+	LOG notice "mwan3 hotplug on $INTERFACE not called because globally disabled"
 	mwan3_flush_conntrack "$INTERFACE" "$ACTION"
 	exit 0
 }
@@ -34,14 +33,15 @@ $IPT4 -S mwan3_hook &>/dev/null || {
 
 mwan3_init
 [ "$MWAN3_STARTUP" = 1 ] || {
-	config_get family $INTERFACE family ipv4
-	mwan3_set_connected_${family}
+	mwan3_set_connected_iptables
+	mwan3_set_custom_ipset
 }
 
-if [ "$MWAN3_STARTUP" != 1 ] && [ "$ACTION" = "ifup" ]; then
+if [ "$MWAN3_STARTUP" != 1 ]; then
 	mwan3_set_user_iface_rules $INTERFACE $DEVICE
 fi
 
+config_get initial_state $INTERFACE initial_state "online"
 config_get_bool enabled $INTERFACE 'enabled' '0'
 [ "${enabled}" -eq 1 ] || {
 	[ "$MWAN3_STARTUP" = 1 ] || mwan3_unlock "$ACTION" "$INTERFACE"
@@ -49,47 +49,54 @@ config_get_bool enabled $INTERFACE 'enabled' '0'
 	exit 0
 }
 
-config_get initial_state $INTERFACE initial_state "online"
+trackpid=$(pgrep -f "mwan3track $INTERFACE ")
+
 if [ "$initial_state" = "offline" ]; then
 	status=$(cat $MWAN3TRACK_STATUS_DIR/$INTERFACE/STATUS 2>/dev/null || echo unknown)
-	[ "$status" = "online" ] || status=offline
 else
 	status=online
 fi
 
-if [ "$ACTION" = ifup ] || [ "$ACTION" = ifdown ]; then
-	initscript=/etc/init.d/mwan3
-	. /lib/functions/procd.sh
-fi
+[ -z "$TRUE_INTERFACE" ] && mwan3_get_true_iface TRUE_INTERFACE $INTERFACE
 
-LOG notice "Execute $ACTION event on interface $INTERFACE (${DEVICE:-unknown})"
+binary_status=$status
+[ "$binary_status" = "online" ] || binary_status=offline
+
+LOG notice "Execute "$ACTION" event on interface $INTERFACE (${DEVICE:-unknown})"
 
 case "$ACTION" in
-	connected)
-		mwan3_set_iface_hotplug_state $INTERFACE "online"
-		mwan3_set_policies_iptables
-		;;
-	ifup)
+	ifup|connected)
 		mwan3_create_iface_iptables $INTERFACE $DEVICE
 		mwan3_create_iface_rules $INTERFACE $DEVICE
-		mwan3_set_iface_hotplug_state $INTERFACE "$status"
-		if [ "$MWAN3_STARTUP" != 1 ]; then
-			mwan3_create_iface_route $INTERFACE $DEVICE
-			[ "$status" = "online" ] && mwan3_set_policies_iptables
+		mwan3_create_iface_route $INTERFACE $DEVICE
+		[ "$MWAN3_STARTUP" != 1 ] && mwan3_add_non_default_iface_route $INTERFACE $DEVICE
+		mwan3_set_iface_hotplug_state $INTERFACE "$binary_status"
+
+		mwan3_get_src_ip src_ip "$TRUE_INTERFACE"
+		if [ -n "${trackpid}" ]; then
+			device_pid=$(pgrep -f "mwan3track $INTERFACE $DEVICE ")
+			if [ "$device_pid" = "$trackpid" ]; then
+				[ "$ACTION" = ifup ] && kill -USR2 "$trackpid"
+			else
+				mwan3_track $INTERFACE $DEVICE "$binary_status" "$src_ip"
+				LOG notice "Restarted tracker [$!] on interface $INTERFACE (${DEVICE:-unknown})"
+			fi
+		else
+			mwan3_track $INTERFACE $DEVICE "$binary_status" "$src_ip"
+			LOG notice "Started tracker [$!] on interface $INTERFACE (${DEVICE:-unknown})"
 		fi
-		[ "$ACTION" = ifup ] && procd_running mwan3 "track_$INTERFACE" && procd_send_signal mwan3 "track_$INTERFACE" USR2
-		;;
-	disconnected)
-		mwan3_set_iface_hotplug_state $INTERFACE "offline"
-		mwan3_set_policies_iptables
-		;;
-	ifdown)
+		[ "$MWAN3_STARTUP" != 1 ] && [ "$binary_status" == "online" ] && mwan3_set_policies_iptables
+
+	;;
+	ifdown|disconnected)
 		mwan3_set_iface_hotplug_state $INTERFACE "offline"
 		mwan3_delete_iface_ipset_entries $INTERFACE
 		mwan3_delete_iface_rules $INTERFACE
 		mwan3_delete_iface_route $INTERFACE
 		mwan3_delete_iface_iptables $INTERFACE
-		procd_running mwan3 "track_$INTERFACE" && procd_send_signal mwan3 "track_$INTERFACE" USR1
+		if [ "$ACTION" = "ifdown" ]; then
+			[ -n "$trackpid" ] && kill -USR1 "$trackpid"
+		fi
 		mwan3_set_policies_iptables
 	;;
 esac
