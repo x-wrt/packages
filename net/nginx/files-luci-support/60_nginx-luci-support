@@ -6,10 +6,12 @@ if nginx -V 2>&1 | grep -q ubus; then
 
 location /ubus {
         ubus_interpreter;
-        ubus_socket_path /var/run/ubus.sock;
+        ubus_socket_path /var/run/ubus/ubus.sock;
         ubus_parallel_req 2;
 }
 EOT
+	elif [ -z "$(cat /etc/nginx/conf.d/luci.locations | grep '/var/run/ubus/ubus.sock')" ]; then
+		sed -i 's,/var/run/ubus.sock,/var/run/ubus/ubus.sock,' /etc/nginx/conf.d/luci.locations
 	fi
 fi
 
