@@ -700,6 +700,12 @@ mwan3_add_non_default_iface_route()
 		if [ -z "$tid" ] || [ "$tid" = "$id" ]; then
 			$IP route add table $id $route_line ||
 				LOG warn "failed to add $route_line to table $id"
+		else
+			[ -z "${route_line##*proto kernel scope link*}" ] && \
+			[ -n "${route_line##*/*}" ] && [ -n "${route_line##* metric *}" ] && \
+			$IP route add table $id $route_line metric $tid && continue
+			$IP route add table $id $route_line ||
+				LOG warn "failed to add $route_line to table $id"
 		fi
 
 	done
@@ -707,7 +713,7 @@ mwan3_add_non_default_iface_route()
 
 mwan3_add_all_nondefault_routes()
 {
-	local tid IP route_line ipv family active_tbls tid
+	local tid IP route_line ipv family active_tbls tid id
 
 	add_active_tbls()
 	{
@@ -721,9 +727,12 @@ mwan3_add_all_nondefault_routes()
 
 	add_route()
 	{
-		let tid++
-		[ -n "${active_tbls##* $tid *}" ] && return
-		$IP route add table $tid $route_line ||
+		let id++
+		[ -n "${active_tbls##* $id *}" ] && return
+		[ "$tid" != "$id" ] && [ -z "${route_line##*proto kernel scope link*}" ] && \
+		[ -n "${route_line##*/*}" ] && [ -n "${route_line##* metric *}" ] && \
+		$IP route add table $id $route_line metric $id && return
+		$IP route add table $id $route_line ||
 			LOG warn "failed to add $route_line to table $tid"
 	}
 
@@ -741,11 +750,7 @@ mwan3_add_all_nondefault_routes()
 		config_foreach add_active_tbls interface
 		$IP route list table main  | grep -v "^default\|linkdown\|^::/0\|^fe80::/64\|^unreachable" | while read route_line; do
 			mwan3_route_line_dev "tid" "$route_line" "$ipv"
-			if [ -n "$tid" ]; then
-				$IP route add table $tid $route_line
-			else
-				config_foreach add_route interface
-			fi
+			id=0 config_foreach add_route interface
 		done
 	done
 }
