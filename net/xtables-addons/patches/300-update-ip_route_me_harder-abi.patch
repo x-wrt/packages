@@ -1,0 +1,74 @@
+From ad003417804ca765fb0559cad5814a13870d425d Mon Sep 17 00:00:00 2001
+From: Chen Minqiang <ptpt52@gmail.com>
+Date: Thu, 29 Oct 2020 22:40:08 +0800
+Subject: [PATCH] update ip_route_me_harder abi
+
+---
+ extensions/xt_DELUDE.c | 4 ++++
+ extensions/xt_ECHO.c   | 4 ++++
+ extensions/xt_TARPIT.c | 8 ++++++++
+ 3 files changed, 16 insertions(+)
+
+diff --git a/extensions/xt_DELUDE.c b/extensions/xt_DELUDE.c
+index b384c8e..a777526 100644
+--- a/extensions/xt_DELUDE.c
++++ b/extensions/xt_DELUDE.c
+@@ -122,7 +122,11 @@ static void delude_send_reset(struct net *net, struct sk_buff *oldskb,
+ 	/* ip_route_me_harder expects skb->dst to be set */
+ 	skb_dst_set(nskb, dst_clone(skb_dst(oldskb)));
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
++	if (ip_route_me_harder(net, oldskb->sk, nskb, addr_type))
++#else
+ 	if (ip_route_me_harder(net, nskb, addr_type))
++#endif
+ 		goto free_nskb;
+ 	else
+ 		niph = ip_hdr(nskb);
+diff --git a/extensions/xt_ECHO.c b/extensions/xt_ECHO.c
+index e99312b..949f2b5 100644
+--- a/extensions/xt_ECHO.c
++++ b/extensions/xt_ECHO.c
+@@ -192,7 +192,11 @@ echo_tg4(struct sk_buff *oldskb, const struct xt_action_param *par)
+ 	/* ip_route_me_harder expects the skb's dst to be set */
+ 	skb_dst_set(newskb, dst_clone(skb_dst(oldskb)));
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
++	if (ip_route_me_harder(par_net(par), par->state->sk, newskb, RTN_UNSPEC) != 0)
++#else
+ 	if (ip_route_me_harder(par_net(par), newskb, RTN_UNSPEC) != 0)
++#endif
+ 		goto free_nskb;
+ 
+ 	newip->ttl = ip4_dst_hoplimit(skb_dst(newskb));
+diff --git a/extensions/xt_TARPIT.c b/extensions/xt_TARPIT.c
+index 4926f2e..e8f88a0 100644
+--- a/extensions/xt_TARPIT.c
++++ b/extensions/xt_TARPIT.c
+@@ -265,7 +265,11 @@ static void tarpit_tcp4(struct net *net, struct sk_buff *oldskb,
+ #endif
+ 		addr_type = RTN_LOCAL;
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
++	if (ip_route_me_harder(net, oldskb->sk, nskb, addr_type))
++#else
+ 	if (ip_route_me_harder(net, nskb, addr_type))
++#endif
+ 		goto free_nskb;
+ 	else
+ 		niph = ip_hdr(nskb);
+@@ -399,7 +403,11 @@ static void tarpit_tcp6(struct net *net, struct sk_buff *oldskb,
+ 	              IPPROTO_TCP,
+ 	              csum_partial(tcph, sizeof(struct tcphdr), 0));
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
++	if (ip6_route_me_harder(net, oldskb->sk, nskb))
++#else
+ 	if (ip6_route_me_harder(net, nskb))
++#endif
+ 		goto free_nskb;
+ 
+ 	nskb->ip_summed = CHECKSUM_NONE;
+-- 
+2.17.1
+
