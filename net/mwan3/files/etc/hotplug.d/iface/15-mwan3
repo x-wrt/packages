@@ -96,6 +96,8 @@ LOG notice "Execute "$ACTION" event on interface $INTERFACE($family) (${DEVICE:-
 
 case "$ACTION" in
 	ifup|connected)
+		mwan3_set_general_rules
+		mwan3_set_general_iptables
 		mwan3_create_iface_iptables $INTERFACE $DEVICE $family
 		mwan3_create_iface_rules $INTERFACE $DEVICE $family
 		mwan3_create_iface_route $INTERFACE $DEVICE $family
