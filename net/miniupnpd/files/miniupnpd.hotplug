@@ -7,7 +7,7 @@
 # - check only on ifup (otherwise lease updates etc would cause
 #   miniupnpd state loss)
 
-[ "$ACTION" != "ifup" ] && /etc/init.d/miniupnpd running && exit 0
+[ "$ACTION" != "ifup" -a "$ACTION" != "ifupdate" ] && /etc/init.d/miniupnpd running && exit 0
 
 lock /var/run/miniupnpd.lock
 
@@ -15,6 +15,7 @@ tmpconf="/var/etc/miniupnpd.conf"
 external_iface=$(uci -q get upnpd.config.external_iface)
 external_iface6=$(uci -q get upnpd.config.external_iface6)
 external_zone=$(uci -q get upnpd.config.external_zone)
+internal_iface=$(uci -q get upnpd.config.internal_iface)
 
 . /lib/functions/network.sh
 
@@ -39,12 +40,11 @@ else
 	fi
 fi
 
-if [ "$DEVICE" != "$ifname" ] && [ "$DEVICE" != "$ifname6" ]; then
-	lock -u /var/run/miniupnpd.lock
-	exit 0
+if [ -n "$internal_iface" ] ; then
+	network_get_device internal_ifname "$internal_iface"
 fi
 
-if grep -qs "^ext_ifname=$ifname" "$tmpconf" && grep -qs "^ext_ifname6=$ifname6" "$tmpconf"; then
+if [ "$DEVICE" != "$ifname" ] && [ "$DEVICE" != "$ifname6" ] && [ "$DEVICE" != "$internal_ifname" ]; then
 	lock -u /var/run/miniupnpd.lock
 	exit 0
 fi
