@@ -1,0 +1,124 @@
+From dd8122e45c6b6502bca0b126d95b069f83f08ed6 Mon Sep 17 00:00:00 2001
+From: Chen Minqiang <ptpt52@gmail.com>
+Date: Fri, 13 Nov 2020 17:23:10 +0800
+Subject: [PATCH 2/2] fix race condition
+
+---
+ mgmt/user_session.c | 33 +++++++++++++++++++++++++--------
+ mgmt/user_session.h |  3 +++
+ smb2pdu.c           |  5 ++++-
+ 3 files changed, 32 insertions(+), 9 deletions(-)
+
+diff --git a/mgmt/user_session.c b/mgmt/user_session.c
+index ea0d4c7..549d947 100644
+--- a/mgmt/user_session.c
++++ b/mgmt/user_session.c
+@@ -147,6 +147,17 @@ void ksmbd_session_destroy(struct ksmbd_session *sess)
+ 	if (!sess)
+ 		return;
+ 
++	if (!atomic_dec_and_test(&sess->refcnt))
++		return;
++
++	list_del(&sess->sessions_entry);
++
++	if (IS_SMB2(sess->conn)) {
++		down_write(&sessions_table_lock);
++		hash_del(&sess->hlist);
++		up_write(&sessions_table_lock);
++	}
++
+ 	if (sess->user)
+ 		ksmbd_free_user(sess->user);
+ 
+@@ -157,14 +168,6 @@ void ksmbd_session_destroy(struct ksmbd_session *sess)
+ 	kfree(sess->Preauth_HashValue);
+ 	ksmbd_release_id(session_ida, sess->id);
+ 
+-	list_del(&sess->sessions_entry);
+-
+-	if (IS_SMB2(sess->conn)) {
+-		down_write(&sessions_table_lock);
+-		hash_del(&sess->hlist);
+-		up_write(&sessions_table_lock);
+-	}
+-
+ 	ksmbd_ida_free(sess->tree_conn_ida);
+ 	ksmbd_free(sess);
+ }
+@@ -217,12 +220,25 @@ struct ksmbd_session *ksmbd_session_lookup(struct ksmbd_conn *conn,
+ 	return NULL;
+ }
+ 
++void get_session(struct ksmbd_session *sess)
++{
++	atomic_inc(&sess->refcnt);
++}
++
++void put_session(struct ksmbd_session *sess)
++{
++	if (atomic_dec_and_test(&sess->refcnt))
++		ksmbd_err("get_session() and put_session() seems to be mismatched.");
++}
++
+ struct ksmbd_session *ksmbd_session_lookup_slowpath(unsigned long long id)
+ {
+ 	struct ksmbd_session *sess;
+ 
+ 	down_read(&sessions_table_lock);
+ 	sess = __session_lookup(id);
++	if (sess)
++		get_session(sess);
+ 	up_read(&sessions_table_lock);
+ 
+ 	return sess;
+@@ -268,6 +284,7 @@ static struct ksmbd_session *__session_create(int protocol)
+ 	INIT_LIST_HEAD(&sess->ksmbd_chann_list);
+ 	INIT_LIST_HEAD(&sess->rpc_handle_list);
+ 	sess->sequence_number = 1;
++	atomic_set(&sess->refcnt, 1);
+ 
+ 	switch (protocol) {
+ #ifdef CONFIG_SMB_INSECURE_SERVER
+diff --git a/mgmt/user_session.h b/mgmt/user_session.h
+index f56498e..b9d0bc1 100644
+--- a/mgmt/user_session.h
++++ b/mgmt/user_session.h
+@@ -63,6 +63,7 @@ struct ksmbd_session {
+ 
+ 	struct list_head		sessions_entry;
+ 	struct ksmbd_file_table		file_table;
++	atomic_t            refcnt;
+ };
+ 
+ static inline int test_session_flag(struct ksmbd_session *sess, int bit)
+@@ -101,6 +102,8 @@ void ksmbd_release_tree_conn_id(struct ksmbd_session *sess, int id);
+ int ksmbd_session_rpc_open(struct ksmbd_session *sess, char *rpc_name);
+ void ksmbd_session_rpc_close(struct ksmbd_session *sess, int id);
+ int ksmbd_session_rpc_method(struct ksmbd_session *sess, int id);
++void get_session(struct ksmbd_session *sess);
++void put_session(struct ksmbd_session *sess);
+ 
+ int ksmbd_init_session_table(void);
+ void ksmbd_free_session_table(void);
+diff --git a/smb2pdu.c b/smb2pdu.c
+index 1979a53..d71af87 100644
+--- a/smb2pdu.c
++++ b/smb2pdu.c
+@@ -620,9 +620,12 @@ static void destroy_previous_session(struct ksmbd_user *user, uint64_t id)
+ 
+ 	if (strcmp(user->name, prev_user->name) ||
+ 	    user->passkey_sz != prev_user->passkey_sz ||
+-	    memcmp(user->passkey, prev_user->passkey, user->passkey_sz))
++	    memcmp(user->passkey, prev_user->passkey, user->passkey_sz)) {
++		put_session(prev_sess);
+ 		return;
++	}
+ 
++	put_session(prev_sess);
+ 	ksmbd_session_destroy(prev_sess);
+ }
+ 
+-- 
+2.17.1
+
