@@ -11,6 +11,8 @@ $(call Package/python3/Default)
   DEPENDS:=+python3-light
 endef
 
+TARGET_LDFLAGS+=-L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/lib
+
 $(eval $(call Py3BasePackage,python3-ctypes, \
 	/usr/lib/python$(PYTHON3_VERSION)/ctypes \
 	/usr/lib/python$(PYTHON3_VERSION)/lib-dynload/_ctypes.$(PYTHON3_SO_SUFFIX) \
