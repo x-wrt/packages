@@ -53,7 +53,8 @@ start_p910nd() {
 		config_get mdns_mdl "$section" mdns_mdl
 		config_get mdns_cmd "$section" mdns_cmd
 		[ "$mdns" -gt 0 ] && procd_add_mdns "pdl-datastream" "tcp" "$((port+9100))" "note=$mdns_note" "ty=$mdns_ty" "product=$mdns_product" "usb_MFG=$mdns_mfg" "usb_MDL=$mdns_mdl" "usb_CMD=$mdns_cmd"
-
+		procd_set_param stdout 1 # relay stdout to logd
+		procd_set_param stderr 1 # relay stderr to logd
 		procd_close_instance
 	fi
 }
