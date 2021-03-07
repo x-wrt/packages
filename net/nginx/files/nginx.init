@@ -52,7 +52,10 @@ nginx_init() {
 	[ -d /var/lib/nginx ] || mkdir -p /var/lib/nginx
 
 	rm -f "$(readlink "${UCI_CONF}")"
-	${NGINX_UTIL} init_lan
+	for i in 1 2 3; do
+		busybox timeout 30 ${NGINX_UTIL} init_lan && break
+		logger -t "nginx_init" -p "daemon.info" "${NGINX_UTIL} init_lan timeout"
+	done
 
 	if [ -f $UCI_CONF_TEMPLATE ]; then
 		nginx_check_luci_template
