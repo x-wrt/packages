@@ -16,11 +16,11 @@ case "$ACTION" in
 	add | update)
 		qosdef_init_env
 		qosdef_init_monitor
-		qosdef_monitor_add $MACADDR $IPADDR $HOSTNAME
+		qosdef_monitor_add "$MACADDR" "$IPADDR" "$HOSTNAME"
 	;;
 	remove)
 		qosdef_init_env
 		qosdef_init_monitor
-		qosdef_monitor_del $MACADDR $IPADDR $HOSTNAME
+		qosdef_monitor_del "$MACADDR" "$IPADDR" "$HOSTNAME"
 	;;
 esac
