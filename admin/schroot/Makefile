@@ -27,6 +27,7 @@ define Package/schroot
   TITLE:=Securely enter a chroot and run a command or login shell.
   DEPENDS:=$(ICONV_DEPENDS) \
 	+boost +boost-filesystem +boost-iostreams +boost-program_options +boost-regex \
+	+coreutils +coreutils-cp +coreutils-stat \
 	+SCHROOT_BTRFS:btrfs-progs \
 	+SCHROOT_LOOPBACK:losetup \
 	+SCHROOT_LVM:lvm2 \
