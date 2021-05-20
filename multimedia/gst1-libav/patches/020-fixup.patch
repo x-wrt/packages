@@ -1,0 +1,24 @@
+diff --git a/ext/libav/gstavmux.c b/ext/libav/gstavmux.c
+index 325a79d..68e3d50 100644
+--- a/ext/libav/gstavmux.c
++++ b/ext/libav/gstavmux.c
+@@ -883,7 +883,8 @@ gst_ffmpegmux_register (GstPlugin * plugin)
+     gchar *type_name;
+     GstRank rank = GST_RANK_MARGINAL;
+ 
+-    if ((!strncmp (in_plugin->name, "u16", 3)) ||
++    if ((!in_plugin->name) ||
++        (!strncmp (in_plugin->name, "u16", 3)) ||
+         (!strncmp (in_plugin->name, "s16", 3)) ||
+         (!strncmp (in_plugin->name, "u24", 3)) ||
+         (!strncmp (in_plugin->name, "s24", 3)) ||
+@@ -921,7 +922,8 @@ gst_ffmpegmux_register (GstPlugin * plugin)
+       continue;
+     }
+ 
+-    if ((!strncmp (in_plugin->long_name, "raw ", 4))) {
++    if ((!in_plugin->long_name) ||
++        (!strncmp (in_plugin->long_name, "raw ", 4))) {
+       GST_LOG ("Ignoring raw muxer %s", in_plugin->name);
+       continue;
+     }
