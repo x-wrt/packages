@@ -28,6 +28,7 @@ include $(INCLUDE_DIR)/meson.mk
 PKG_CONFIG_DEPENDS:= \
 	CONFIG_PACKAGE_gst1-mod-asf \
 	CONFIG_PACKAGE_gst1-mod-mpeg2dec \
+	CONFIG_PACKAGE_gst1-mod-x264 \
 
 GST_UGLY_MODULES:=
 
@@ -104,7 +105,7 @@ MESON_ARGS += \
 	-Ddvdread=disabled \
 	$(call GST_COND_SELECT,mpeg2dec) \
 	-Dsidplay=disabled \
-	-Dx264=disabled \
+	$(call GST_COND_SELECT,x264) \
 	\
 	-Dgpl=enabled \
 	-Dnls=enabled \
@@ -157,6 +158,7 @@ endef
 
 $(eval $(call GstBuildPlugin,asf,ASF demuxer,audio video riff rtp rtsp sdp tag,,))
 $(eval $(call GstBuildPlugin,mpeg2dec,MPEG decoder,video,,+libmpeg2))
+$(eval $(call GstBuildPlugin,x264,H264/AVC codec support,pbutils,,+libx264))
 
 $(eval $(call BuildPackage,gstreamer1-plugins-ugly))
 $(eval $(call BuildPackage,gst1-plugins-ugly))
