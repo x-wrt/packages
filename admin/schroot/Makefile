@@ -38,7 +38,7 @@ define Package/schroot/description
   Securely enter a chroot and run a command or login shell.
 endef
 
-define Package/sudo/conffiles
+define Package/schroot/conffiles
 /etc/schroot/
 endef
 
