@@ -26,7 +26,16 @@ define Package/crun
   CATEGORY:=Utilities
   TITLE:=crun
   URL:=https://github.com/containers/crun
-  DEPENDS:=@!arc +libseccomp +libcap
+  DEPENDS:=@!arc +libseccomp +libcap \
+	   +@KERNEL_CGROUPS \
+	   +@KERNEL_CGROUP_FREEZER \
+	   +@KERNEL_CGROUP_DEVICE \
+	   +@KERNEL_CGROUP_HUGETLB \
+	   +@KERNEL_MEMCG_SWAP_ENABLED \
+	   +@KERNEL_CGROUP_PERF \
+	   +@KERNEL_CFQ_GROUP_IOSCHED \
+	   +@KERNEL_NET_CLS_CGROUP \
+	   +@KERNEL_CGROUP_NET_PRIO
 endef
 
 define Package/crun/description
