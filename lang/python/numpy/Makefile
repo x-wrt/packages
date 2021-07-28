@@ -42,7 +42,6 @@ endef
 # We need to duplicate the omitted arhitectures same as openblas
 define Package/python3-numpy/config
 menu "Configuration"
-depends on PACKAGE_python3-numpy
 depends on !powerpc
 depends on !arc
 
