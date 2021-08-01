@@ -11,8 +11,6 @@ NGINX_UTIL="/usr/bin/nginx-util"
 UCI_CONF_TEMPLATE="/etc/nginx/uci.conf.template"
 LATEST_UCI_CONF_VERSION="1.2"
 
-eval $("${NGINX_UTIL}" get_env)
-
 CONF=""
 
 nginx_check_luci_template() {
@@ -46,6 +44,7 @@ nginx_check_luci_template() {
 }
 
 nginx_init() {
+	eval $("${NGINX_UTIL}" get_env)
 	[ -z "${CONF}" ] || return # already called.
 
 	[ -d /var/log/nginx ] || mkdir -p /var/log/nginx
@@ -80,6 +79,7 @@ nginx_init() {
 
 
 start_service() {
+	eval $("${NGINX_UTIL}" get_env)
 	nginx_init
 
 	procd_open_instance
@@ -94,6 +94,7 @@ start_service() {
 
 
 reload_service() {
+	eval $("${NGINX_UTIL}" get_env)
 	nginx_init
 
 	if [ "$(cat "/proc/$(cat "/var/run/nginx.pid")/cmdline")" = \
