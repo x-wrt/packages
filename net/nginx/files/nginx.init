@@ -46,6 +46,7 @@ nginx_check_luci_template() {
 }
 
 nginx_init() {
+	eval $("${NGINX_UTIL}" get_env)
 	[ -z "${CONF}" ] || return # already called.
 
 	[ -d /var/log/nginx ] || mkdir -p /var/log/nginx
@@ -127,6 +128,7 @@ configure_mdns() {
 }
 
 start_service() {
+	eval $("${NGINX_UTIL}" get_env)
 	nginx_init
 
 	procd_open_instance
@@ -144,6 +146,7 @@ start_service() {
 
 
 reload_service() {
+	eval $("${NGINX_UTIL}" get_env)
 	nginx_init
 
 	if [ "$(cat "/proc/$(cat "/var/run/nginx.pid")/cmdline")" = \
