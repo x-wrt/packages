@@ -1,12 +1,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=ksmbd
-PKG_VERSION:=3.3.9
-PKG_RELEASE:=1
+PKG_VERSION:=3.4.1
+PKG_RELEASE:=20210813
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=https://codeload.github.com/cifsd-team/cifsd/tar.gz/$(PKG_VERSION)?
-PKG_HASH:=c196d1773b9f89221133780fd189b550acbc56ac93c2e79260a70eab9853b3e1
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_RELEASE).tar.gz
+PKG_SOURCE_URL:=https://codeload.github.com/ptpt52/ksmbd/tar.gz/$(PKG_RELEASE)?
+PKG_HASH:=9c8c23f1ca2ce75e4bc13ef35304cc1178c7b26f7245f645bb86696c7978d4cf
 
 PKG_MAINTAINER:=Andy Walsh <andy.walsh44+github@gmail.com>
 PKG_LICENSE:=GPL-2.0-or-later
@@ -24,21 +24,17 @@ define KernelPackage/fs-ksmbd
 	URL:=https://github.com/cifsd-team/cifsd
 	FILES:=$(PKG_BUILD_DIR)/ksmbd.ko
 	DEPENDS:= \
+		+kmod-asn1-decoder \
 		+kmod-nls-base \
 		+kmod-nls-utf8 \
 		+kmod-crypto-md4 \
-		+kmod-crypto-md5 \
-		+kmod-crypto-hmac \
-		+kmod-crypto-arc4 \
-		+kmod-crypto-ecb \
-		+kmod-crypto-des \
 		+kmod-crypto-sha256 \
 		+kmod-crypto-cmac \
 		+kmod-crypto-sha512 \
 		+kmod-crypto-aead \
 		+kmod-crypto-ccm \
 		+kmod-crypto-gcm \
-		+kmod-lib-crc32c
+		+kmod-fs-nfs-common-rpcsec
 endef
 
 define KernelPackage/fs-ksmbd/description
