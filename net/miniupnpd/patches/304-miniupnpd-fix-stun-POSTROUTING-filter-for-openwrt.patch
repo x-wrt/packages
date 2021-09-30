@@ -1,0 +1,31 @@
+From 778064942e2f03d443ecc2dcccf908e6bf0b1b03 Mon Sep 17 00:00:00 2001
+From: Chen Minqiang <ptpt52@gmail.com>
+Date: Thu, 30 Sep 2021 10:01:52 +0800
+Subject: [PATCH] miniupnpd: fix stun POSTROUTING filter for openwrt
+
+---
+ miniupnpd/upnpstun.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+--- a/upnpstun.c
++++ b/upnpstun.c
+@@ -439,6 +439,9 @@ int perform_stun(const char *if_name, co
+ 
+ 	/* Unblock local ports */
+ 	for (i = 0; i < 4; ++i) {
++		char buffer[100];
++		snprintf(buffer, sizeof(buffer), "/usr/sbin/iptables -t nat -I POSTROUTING -p udp --sport %hu -j RETURN", local_ports[i]);
++		system(buffer);
+ 		if (add_filter_rule2(if_name, NULL, if_addr, local_ports[i], local_ports[i], IPPROTO_UDP, "stun test") < 0) {
+ 			syslog(LOG_ERR, "%s: add_filter_rule2(..., %hu, ...) FAILED",
+ 			       "perform_stun", local_ports[i]);
+@@ -469,6 +472,9 @@ int perform_stun(const char *if_name, co
+ 
+ 	/* Remove unblock for local ports */
+ 	for (i = 0; i < 4; ++i) {
++		char buffer[100];
++		snprintf(buffer, sizeof(buffer), "/usr/sbin/iptables -t nat -D POSTROUTING -p udp --sport %hu -j RETURN", local_ports[i]);
++		system(buffer);
+ 		delete_filter_rule(if_name, local_ports[i], IPPROTO_UDP);
+ 		close(fds[i]);
+ 	}
