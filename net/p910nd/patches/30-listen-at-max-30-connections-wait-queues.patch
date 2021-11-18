@@ -1,0 +1,25 @@
+From 0b794f93675deb881c8a4adae88818c54c2d351d Mon Sep 17 00:00:00 2001
+From: Chen Minqiang <ptpt52@gmail.com>
+Date: Thu, 18 Nov 2021 11:27:46 +0800
+Subject: [PATCH] listen at max 30 connections wait queues
+
+---
+ p910nd.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/p910nd.c b/p910nd.c
+index 51210ca..0792584 100644
+--- a/p910nd.c
++++ b/p910nd.c
+@@ -651,7 +651,7 @@ void server(int lpnumber)
+ 			res = res->ai_next;
+ 			continue;
+ 		}
+-		if (listen(netfd, 5) < 0) {
++		if (listen(netfd, 30) < 0) {
+ 			dolog(LOGOPTS, "listen: %m\n");
+ 			close(netfd);
+ 			res = res->ai_next;
+-- 
+2.17.1
+
