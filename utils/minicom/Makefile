@@ -20,6 +20,7 @@ PKG_LICENSE:=GPL-2.0-or-later
 PKG_LICENSE_FILES:=COPYING
 PKG_CPE_ID:=cpe:/a:minicom:minicom
 
+PKG_BUILD_DEPENDS:=gettext-full/host
 PKG_FIXUP:=autoreconf
 
 include $(INCLUDE_DIR)/nls.mk
