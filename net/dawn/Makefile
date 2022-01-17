@@ -6,12 +6,11 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dawn
 PKG_SOURCE_DATE:=2022-01-17
-PKG_RELEASE:=$(AUTORELEASE)
+PKG_VERSION:=20220117
 
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/berlin-open-wireless-lab/DAWN.git
-PKG_SOURCE_VERSION:=7a72674063dd34bd21f39c7be8aadb867db67658
-PKG_MIRROR_HASH:=4fbca0139c8c3fc08bf430887c9f0835d6b4645cc316b96f2d58c2d8ceb89f24
+PKG_SOURCE_URL:=https://codeload.github.com/ptpt52/dawn/tar.gz/$(PKG_VERSION)?
+PKG_HASH:=172fea36e057bf2a2d9118cf9b785675fe839f967b3c782fa54db3f773e4c509
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 
 PKG_MAINTAINER:=Nick Hainke <vincent@systemli.org>
 PKG_LICENSE:=GPL-2.0-only
