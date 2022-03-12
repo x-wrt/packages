@@ -177,7 +177,7 @@ upnpd() {
 
 	if [ -n "$ifname" ]; then
 		# start firewall
-		iptables -L MINIUPNPD >/dev/null 2>&1 || fw3 reload
+		:
 	else
 		logger -t "upnp daemon" "external interface not found, not starting"
 	fi
@@ -190,11 +190,7 @@ upnpd() {
 }
 
 stop_service() {
-	iptables -t nat -F MINIUPNPD 2>/dev/null
-	iptables -t nat -F MINIUPNPD-POSTROUTING 2>/dev/null
-	iptables -t filter -F MINIUPNPD 2>/dev/null
-
-	[ -x /usr/sbin/ip6tables ] && ip6tables -t filter -F MINIUPNPD 2>/dev/null
+	sh /usr/share/miniupnpd/core.sh stop
 }
 
 start_service() {
