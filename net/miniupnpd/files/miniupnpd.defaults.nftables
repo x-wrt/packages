@@ -2,10 +2,10 @@
 
 uci -q batch <<-EOT
 	delete firewall.miniupnpd
-	set firewall.miniupnpd=include
-	set firewall.miniupnpd.type=script
-	set firewall.miniupnpd.path=/usr/share/miniupnpd/firewall.include
 	commit firewall
 EOT
+
+grep -q "^sh /usr/share/miniupnpd/nft.include" /etc/firewall.include || \
+echo "sh /usr/share/miniupnpd/nft.include" >>/etc/firewall.include
 
 exit 0
