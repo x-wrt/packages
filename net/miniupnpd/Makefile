@@ -103,6 +103,10 @@ define Package/miniupnpd/install/Default
 	$(INSTALL_BIN) ./files/miniupnpd.init $(1)/etc/init.d/miniupnpd
 	$(INSTALL_CONF) ./files/upnpd.config $(1)/etc/config/upnpd
 	$(INSTALL_DATA) ./files/miniupnpd.hotplug $(1)/etc/hotplug.d/iface/50-miniupnpd
+	$(INSTALL_DIR) $(1)/usr/share/miniupnpd
+	$(INSTALL_DATA) ./files/core.sh $(1)/usr/share/miniupnpd/core.sh
+	$(INSTALL_DIR) $(1)/etc/uci-defaults
+	$(INSTALL_BIN) ./files/miniupnpd.defaults.nftables $(1)/etc/uci-defaults/99-miniupnpd-nft
 endef
 
 define Package/miniupnpd-iptables/install
