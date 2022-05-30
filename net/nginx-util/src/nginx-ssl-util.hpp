@@ -451,7 +451,7 @@ inline void create_ssl_certificate(const std::string& crtpath,
 
         write_key(pkey, tmpkeypath);
 
-        std::string subject{"/C=ZZ/ST=Somewhere/L=None/CN=OpenWrt/O=OpenWrt"};
+        std::string subject{"/C=ZZ/ST=Somewhere/L=None/CN=x-wrt.lan/O=x-wrt.lan"};
         subject += noncestr.data();
 
         selfsigned(pkey, days, subject, tmpcrtpath);
