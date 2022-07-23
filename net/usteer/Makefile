@@ -6,10 +6,11 @@ PKG_NAME:=usteer
 PKG_SOURCE_DATE:=2025-10-04
 PKG_SOURCE_VERSION:=1d6524c6e6b58853f053c7816249a8f68ad9b0e8
 PKG_RELEASE:=1
+PKG_VERSION:=20251009
 
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL=https://git.openwrt.org/project/usteer.git
-PKG_MIRROR_HASH:=5f0525c441a023c07e6cb1b9e895ee0fdd84cd67043a905c2954caaa934e4eb8
+PKG_SOURCE_URL:=https://codeload.github.com/fakemesh/usteer/tar.gz/$(PKG_VERSION)?
+PKG_HASH:=40e83474eda801ecda55c08164e9ccca04c8488608c1c8f9d44910bff540ea49
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 
 PKG_MAINTAINER:=David Bauer <mail@david-bauer.net>
 PKG_LICENSE:=GPL-2.0-only
