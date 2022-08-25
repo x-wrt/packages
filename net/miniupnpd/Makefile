@@ -8,12 +8,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=miniupnpd
-PKG_VERSION:=2.3.6
+PKG_VERSION:=20240507
 PKG_RELEASE:=1
 
-PKG_SOURCE_URL:=https://miniupnp.tuxfamily.org/files
+PKG_SOURCE_URL:=https://codeload.github.com/x-wrt/miniupnp/tar.gz/$(PKG_VERSION)?
+PKG_HASH:=2fd866b32ea8028cc47e885c450593c79030edf5f44bf70b1698137a95a7f470
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_HASH:=11ca7bf4d4ba6c6ba12c70c3041807f516f4d9f6b6697bea04e837626b9d679c
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(BUILD_VARIANT)/$(PKG_NAME)-$(PKG_VERSION)/miniupnpd
 
 PKG_MAINTAINER:=
 PKG_LICENSE:=BSD-3-Clause
@@ -26,11 +27,14 @@ PKG_BUILD_PARALLEL:=1
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/version.mk
 
+TAR_OPTIONS+= --strip-components 1
+TAR_CMD=$(HOST_TAR) -C $(1)/.. $(TAR_OPTIONS)
+
 define Package/miniupnpd/Default
   SECTION:=net
   CATEGORY:=Network
   DEPENDS:= \
-	+libcap-ng \
+	+libcap \
 	+libmnl \
 	+libuuid
   PROVIDES:=miniupnpd
