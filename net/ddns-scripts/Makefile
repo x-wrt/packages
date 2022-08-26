@@ -431,6 +431,7 @@ define Package/ddns-scripts/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_DATA) ./files/etc/uci-defaults/50-ddns-migrate-retry-count \
 		$(1)/etc/uci-defaults/
+	$(INSTALL_DATA) ./files/uci.defaults $(1)/etc/uci-defaults/99-ddns
 endef
 
 define Package/ddns-scripts/postinst
