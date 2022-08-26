@@ -79,7 +79,7 @@ case "$1" in
 		fi
 		;;
 	stop)
-		if [ -n "$INTERFACE" ]; then
+		if [ -n "$NETWORK" ]; then
 			stop_daemon_for_all_ddns_sections "$NETWORK"
 			exit 0
 		else
