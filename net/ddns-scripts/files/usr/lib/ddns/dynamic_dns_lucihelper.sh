@@ -24,6 +24,7 @@ Commands:
  verify_dns          given DNS-SERVER
  verify_proxy        given PROXY
  start               start given SECTION
+ stop                stop given SECTION
  reload              force running ddns processes to reload changed configuration
  restart             restart all ddns processes
 
@@ -153,6 +154,9 @@ case "$1" in
 			$DDNSPRG -v $VERBOSE -S $SECTION -- start
 		fi
 		;;
+	stop)
+		[ -z "$SECTION" ] &&  usage_err "command 'start': 'SECTION' not set"
+		$DDNSPRG -v $VERBOSE -S $SECTION -- stop
 	reload)
 		$DDNSPRG -- reload
 		;;
