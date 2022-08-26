@@ -337,6 +337,8 @@ define Package/ddns-scripts/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) ./files/usr/bin/ddns.sh \
 		$(1)/usr/bin/ddns
+	$(INSTALL_DIR) $(1)/etc/uci-defaults
+	$(INSTALL_DATA) ./files/uci.defaults $(1)/etc/uci-defaults/99-ddns
 endef
 
 define Package/ddns-scripts/postinst
