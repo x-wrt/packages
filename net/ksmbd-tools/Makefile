@@ -2,11 +2,11 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=ksmbd-tools
 PKG_VERSION:=3.4.5
-PKG_RELEASE:=20220610
+PKG_RELEASE:=20221003
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_RELEASE).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/ptpt52/ksmbd-tools/tar.gz/$(PKG_RELEASE)?
-PKG_HASH:=fb4917ab8c25e5ab8401882bf8923daf17a62a837768500405e01293e93bb71e
+PKG_HASH:=ddbc8a2906b25ed23f37959c3d54b93f20dd4fdd7ab8fc1a2155ad3b0ac548da
 
 PKG_LICENSE:=GPL-2.0-or-later
 PKG_LICENSE_FILES:=COPYING
@@ -106,7 +106,6 @@ define Package/ksmbd-server/install
 	$(INSTALL_BIN) ./files/ksmbd.init $(1)/etc/init.d/ksmbd
 	# copy examples until we have a wiki page
 	$(INSTALL_DATA) ./files/ksmbd.config.example $(1)/etc/ksmbd/
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/Documentation/configuration.txt $(1)/etc/ksmbd/
 endef
 
 define Package/ksmbd-utils/install
