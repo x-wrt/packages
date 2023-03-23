@@ -1,0 +1,19 @@
+diff --git a/xl2tpd.c b/xl2tpd.c
+index 791d5a4..66be5ec 100644
+--- a/xl2tpd.c
++++ b/xl2tpd.c
+@@ -529,6 +529,14 @@ int start_pppd (struct call *c, struct ppp_opts *opts)
+     else if (!c->pppd)
+     {
+         /* child */
++        {
++            char pppname[16];
++            snprintf(pppname, 16, "l2tp%u", getpid());
++            pppname[15] = 0;
++            stropt[pos++] = strdup("ifname");
++            stropt[pos++] = strdup(pppname);
++            stropt[pos] = NULL;
++        }
+ 
+         close (0); /* redundant; the dup2() below would do that, too */
+         close (1); /* ditto */
