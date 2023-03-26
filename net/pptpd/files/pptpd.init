@@ -35,7 +35,7 @@ setup_login() {
 	[ -n "$password" ] || return 0
 	[ -n "$remoteip" ] || remoteip=*
 
-	echo "$username pptp-server $password $remoteip" >> $CHAP_SECRETS
+	echo "$username pptp-server \"$password\" $remoteip" >> $CHAP_SECRETS.pptp
 }
 
 setup_config() {
@@ -62,9 +62,12 @@ setup_config() {
 start_service() {
 	config_load pptpd
 	validate_pptpd_section pptpd setup_config || return
+	:>$CHAP_SECRETS.pptp
 	config_foreach validate_login_section login setup_login
+	cat $CHAP_SECRETS.pptp $CHAP_SECRETS.l2tp >$CHAP_SECRETS 2>/dev/null
 
-	ln -sfn $CHAP_SECRETS /etc/ppp/chap-secrets
+	readlink /etc/ppp/chap-secrets &>/dev/null || \
+	ln -sfn $CHAP_SECRETS /etc/ppp/chap-secrets &>/dev/null
 
 	procd_open_instance
 	procd_set_param command $BIN -c $CONFIG --fg -o $OPTIONS_PPTP
