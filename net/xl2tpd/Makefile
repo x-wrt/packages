@@ -64,6 +64,7 @@ define Package/xl2tpd/conffiles
 /etc/xl2tpd/xl2tpd.conf
 /etc/xl2tpd/xl2tp-secrets
 /etc/ppp/options.xl2tpd
+/etc/config/xl2tpd
 endef
 
 define Package/xl2tpd/install
@@ -83,6 +84,9 @@ define Package/xl2tpd/install
 
 	$(INSTALL_DIR) $(1)/lib/netifd/proto
 	$(INSTALL_BIN) ./files/l2tp.sh $(1)/lib/netifd/proto
+
+	$(INSTALL_DIR) $(1)/etc/config
+	$(INSTALL_DATA) ./files/xl2tpd.config $(1)/etc/config/xl2tpd
 endef
 
 $(eval $(call BuildPackage,xl2tpd))
