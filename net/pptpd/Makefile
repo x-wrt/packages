@@ -27,7 +27,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/pptpd
   SECTION:=net
   CATEGORY:=Network
-  DEPENDS:=+kmod-ppp +kmod-gre +kmod-mppe +ppp
+  DEPENDS:=+kmod-ppp +kmod-gre +kmod-mppe +ppp-mod-pptp
   TITLE:=PopTop pptp server
   URL:=https://poptop.sourceforge.net/
   SUBMENU:=VPN
