@@ -28,7 +28,7 @@ HTTP/2 C Library
 endef
 
 CMAKE_OPTIONS += \
-        -DENABLE_LIB_ONLY=ON
+        -DENABLE_LIB_ONLY=ON -DENABLE_STATIC_LIB=ON
 
 define Build/InstallDev
 	$(call Build/InstallDev/cmake,$(1))
