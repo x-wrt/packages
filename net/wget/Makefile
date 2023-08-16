@@ -29,7 +29,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/wget/Default
   SECTION:=net
   CATEGORY:=Network
-  DEPENDS:=+libpcre2 +zlib
+  DEPENDS:=+libpcre +zlib
   SUBMENU:=File Transfer
   TITLE:=Non-interactive network downloader
   URL:=https://www.gnu.org/software/wget/index.html
@@ -73,6 +73,7 @@ endef
 CONFIGURE_ARGS+= \
 	--disable-rpath \
 	--disable-iri \
+	--disable-pcre2 \
 	--with-included-libunistring \
 	--without-libuuid \
 	--without-libpsl
