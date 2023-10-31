@@ -1,10 +1,24 @@
+From 892532caaaa241bdb87bdea39270b3038655778d Mon Sep 17 00:00:00 2001
+From: Chen Minqiang <ptpt52@gmail.com>
+Date: Tue, 31 Oct 2023 10:54:32 +0800
+Subject: [PATCH] static link glib
+
+---
+ meson.build | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/meson.build b/meson.build
+index 5f5935f..7b3bb21 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -21,6 +21,7 @@ include_dirs = include_directories(
  glib_dep = dependency(
    'glib-2.0',
-   version: '>= 2.40',
+   version: '>= 2.44',
 +  static: true,
  )
  libnl_dep = dependency(
    'libnl-genl-3.0',
+-- 
+2.17.1
+
