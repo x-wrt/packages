@@ -14,7 +14,7 @@ config_get_sane()
 
 smb_header()
 {
-	config_get_sane SMBD_IFACE "$1" interface "lan"
+	config_get_sane SMBD_IFACE "$1" interface ""
 
 	# resolve interfaces
 	interfaces=$(
