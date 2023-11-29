@@ -13,6 +13,7 @@ define Package/external-protocol
   CATEGORY:=Network
   TITLE:=externally managed protocol
   PKGARCH:=all
+  PROVIDES:=cni-protocol
 endef
 
 define Package/external-protocol/description
