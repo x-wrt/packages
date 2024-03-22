@@ -23,7 +23,7 @@ PKG_CPE_ID:=cpe:/a:nginx:nginx
 PKG_FIXUP:=autoreconf
 PKG_BUILD_PARALLEL:=1
 PKG_INSTALL:=1
-PKG_BUILD_FLAGS:=gc-sections lto
+PKG_BUILD_FLAGS:=gc-sections
 
 # 3rd-party modules
 PKG_MOD_EXTRA := \
