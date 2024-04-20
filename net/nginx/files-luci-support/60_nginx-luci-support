@@ -1,5 +1,9 @@
 #!/bin/sh
 
+grep -r -l ngx_http_ubus_module.so /etc/nginx/module.d | grep -v ngx_http_ubus.module | while read file; do
+	rm -f $file
+done
+
 if nginx -V 2>&1 | grep -q ubus && [ -f /usr/lib/nginx/modules/ngx_http_ubus_module.so ]; then
 	if [ -z "$(cat /etc/nginx/conf.d/luci.locations | grep ubus)" ]; then
 		cat <<EOT >> /etc/nginx/conf.d/luci.locations
