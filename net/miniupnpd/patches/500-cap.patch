@@ -1,0 +1,30 @@
+diff --git a/configure b/configure
+index 69df545..c0d9658 100755
+--- a/configure
++++ b/configure
+@@ -607,18 +607,18 @@ esac
+ if [ "$FW" = "iptables" ] || [ "$FW" = "nftables" ] ; then
+ 	# linux
+ 	if [ "$PKG_CONFIG" ] ; then
+-		if ${PKG_CONFIG} --exists libcap-ng ; then
+-			echo "detected libcap-ng `${PKG_CONFIG} --modversion libcap-ng`"
+-			echo "CFLAGS += `${PKG_CONFIG} --cflags libcap-ng`" >> config.mk
+-			echo "LDLIBS += `${PKG_CONFIG} --libs-only-l libcap-ng`" >> config.mk
+-			echo "LDFLAGS += `${PKG_CONFIG} --libs-only-L --libs-only-other libcap-ng`" >> config.mk
+-			echo "#define HAS_LIBCAP_NG" >> ${CONFIGFILE}
+-		elif ${PKG_CONFIG} --exists libcap ; then
++		if ${PKG_CONFIG} --exists libcap ; then
+ 			echo "detected libcap `${PKG_CONFIG} --modversion libcap`"
+ 			echo "CFLAGS += `${PKG_CONFIG} --cflags libcap`" >> config.mk
+ 			echo "LDLIBS += `${PKG_CONFIG} --libs-only-l libcap`" >> config.mk
+ 			echo "LDFLAGS += `${PKG_CONFIG} --libs-only-L --libs-only-other libcap`" >> config.mk
+ 			echo "#define HAS_LIBCAP" >> ${CONFIGFILE}
++		elif ${PKG_CONFIG} --exists libcap-ng ; then
++			echo "detected libcap-ng `${PKG_CONFIG} --modversion libcap-ng`"
++			echo "CFLAGS += `${PKG_CONFIG} --cflags libcap-ng`" >> config.mk
++			echo "LDLIBS += `${PKG_CONFIG} --libs-only-l libcap-ng`" >> config.mk
++			echo "LDFLAGS += `${PKG_CONFIG} --libs-only-L --libs-only-other libcap-ng`" >> config.mk
++			echo "#define HAS_LIBCAP_NG" >> ${CONFIGFILE}
+ 		fi
+ 	fi
+ fi
