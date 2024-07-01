@@ -1,0 +1,37 @@
+diff --git a/sbuild/sbuild-chroot-config.cc b/sbuild/sbuild-chroot-config.cc
+index 48f8eda..99c8311 100644
+--- a/sbuild/sbuild-chroot-config.cc
++++ b/sbuild/sbuild-chroot-config.cc
+@@ -31,6 +31,7 @@
+ #include <cstdlib>
+ #include <cstring>
+ 
++#include <boost/filesystem/directory.hpp>
+ #include <boost/filesystem/operations.hpp>
+ 
+ #include <sys/types.h>
+diff --git a/sbuild/sbuild-run-parts.cc b/sbuild/sbuild-run-parts.cc
+index 2313260..9063371 100644
+--- a/sbuild/sbuild-run-parts.cc
++++ b/sbuild/sbuild-run-parts.cc
+@@ -29,6 +29,7 @@
+ #include <syslog.h>
+ 
+ #include <boost/format.hpp>
++#include <boost/filesystem/directory.hpp>
+ #include <boost/filesystem/operations.hpp>
+ 
+ using boost::format;
+diff --git a/sbuild/sbuild-util.cc b/sbuild/sbuild-util.cc
+index b89068a..c6dadcc 100644
+--- a/sbuild/sbuild-util.cc
++++ b/sbuild/sbuild-util.cc
+@@ -35,8 +35,6 @@
+ #include <time.h>
+ #endif
+ 
+-#include <boost/filesystem/convenience.hpp>
+-
+ using namespace sbuild;
+ 
+ namespace
