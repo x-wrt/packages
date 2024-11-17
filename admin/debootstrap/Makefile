@@ -9,10 +9,10 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=debootstrap
-PKG_VERSION:=1.0.128+nmu2+deb12u1
+PKG_VERSION:=1.0.128
 PKG_RELEASE:=1
 
-PKG_SOURCE:=$(PKG_NAME)-udeb_$(PKG_VERSION)_all.udeb
+PKG_SOURCE:=$(PKG_NAME)-udeb_$(PKG_VERSION)+nmu2+deb12u1_all.udeb
 PKG_SOURCE_URL:=@DEBIAN/pool/main/d/debootstrap
 PKG_HASH:=4fa4ec7c144ed047c47d0d8eb9b91b56eaa9b2db2b52510777abbabf5965d268
 
