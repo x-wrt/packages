@@ -2,11 +2,11 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=ksmbd-tools
 PKG_VERSION:=3.5.7
-PKG_RELEASE:=1
+PKG_RELEASE:=20260830
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=https://github.com/cifsd-team/ksmbd-tools/releases/download/$(PKG_VERSION)
-PKG_HASH:=d8e532b2d032e3f447f3fd19e0f9ea0abeb355285f8d6871ce9036bc6393a5b2
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_RELEASE).tar.gz
+PKG_SOURCE_URL:=https://codeload.github.com/ptpt52/ksmbd-tools/tar.gz/$(PKG_RELEASE)?
+PKG_HASH:=c86ef537dca4130dd8446bceb87c57148e1d2c1469f859390a4f80e21d3195d5
 
 PKG_LICENSE:=GPL-2.0-or-later
 PKG_LICENSE_FILES:=COPYING
@@ -17,6 +17,9 @@ PKG_BUILD_FLAGS:=gc-sections
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/nls.mk
 include $(INCLUDE_DIR)/meson.mk
+
+TAR_OPTIONS+= --strip-components 1
+TAR_CMD=$(HOST_TAR) -C $(1) $(TAR_OPTIONS)
 
 define Package/ksmbd-tools/Default
   SECTION:=net
