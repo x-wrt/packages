@@ -1,0 +1,12 @@
+diff --git a/Makefile.am b/Makefile.am
+index d37b56d..67ee8ff 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -113,6 +113,7 @@ install-exec-hook:
+ 	fi
+ if BUILD_TOOLS
+ 	for tool in insmod lsmod rmmod depmod modprobe modinfo; do \
++		rm -f $(DESTDIR)$(bindir)/$$tool; \
+ 		$(LN_S) kmod $(DESTDIR)$(bindir)/$$tool; \
+ 	done
+ endif
