@@ -1,0 +1,13 @@
+diff --git a/netifaces.c b/netifaces.c
+index 839c42c..8b04dc4 100644
+--- a/netifaces.c
++++ b/netifaces.c
+@@ -1805,7 +1805,7 @@ gateways (PyObject *self)
+         sizeof(sanl_from),
+         &iov,
+         1,
+-        NULL,
++        0,
+         0,
+         0
+       };
