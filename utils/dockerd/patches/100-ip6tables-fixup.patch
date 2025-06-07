@@ -1,0 +1,35 @@
+diff --git a/libnetwork/drivers/bridge/setup_ip_forwarding.go b/libnetwork/drivers/bridge/setup_ip_forwarding.go
+index a29ac07..92c831a 100644
+--- a/libnetwork/drivers/bridge/setup_ip_forwarding.go
++++ b/libnetwork/drivers/bridge/setup_ip_forwarding.go
+@@ -54,20 +54,20 @@ func setupIPForwarding(enableIPTables bool, enableIP6Tables bool) error {
+ 				}
+ 			})
+ 		}
+-	}
+ 
+-	// add only iptables rules - forwarding is handled by setupIPv6Forwarding in setup_ipv6
+-	if enableIP6Tables {
+-		iptable := iptables.GetIptable(iptables.IPv6)
+-		if err := iptable.SetDefaultPolicy(iptables.Filter, "FORWARD", iptables.Drop); err != nil {
+-			log.G(context.TODO()).Warnf("Setting the default DROP policy on firewall reload failed, %v", err)
+-		}
+-		iptables.OnReloaded(func() {
+-			log.G(context.TODO()).Debug("Setting the default DROP policy on firewall reload")
++		// add only iptables rules - forwarding is handled by setupIPv6Forwarding in setup_ipv6
++		if enableIP6Tables {
++			iptable := iptables.GetIptable(iptables.IPv6)
+ 			if err := iptable.SetDefaultPolicy(iptables.Filter, "FORWARD", iptables.Drop); err != nil {
+ 				log.G(context.TODO()).Warnf("Setting the default DROP policy on firewall reload failed, %v", err)
+ 			}
+-		})
++			iptables.OnReloaded(func() {
++				log.G(context.TODO()).Debug("Setting the default DROP policy on firewall reload")
++				if err := iptable.SetDefaultPolicy(iptables.Filter, "FORWARD", iptables.Drop); err != nil {
++					log.G(context.TODO()).Warnf("Setting the default DROP policy on firewall reload failed, %v", err)
++				}
++			})
++		}
+ 	}
+ 
+ 	return nil
