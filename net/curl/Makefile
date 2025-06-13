@@ -118,6 +118,7 @@ CONFIGURE_ARGS += \
 	--enable-shared \
 	--enable-static \
 	--disable-manual \
+	--without-brotli \
 	--without-nss \
 	--without-librtmp \
 	--without-ca-path \
