@@ -31,6 +31,9 @@ include ../php8/pecl.mk
 
 CONFIGURE_VARS+= \
 	PECL_cv_HAVE_EXT_raphf=yes \
+	PECL_cv_libbrotlicommon_exists=no \
+	PECL_cv_libbrotlidec_exists=no \
+	PECL_cv_libbrotlienc_exists=no \
 	PECL_cv_HAVE_LIBCURL_ARES=no \
 	PECL_cv_HAVE_LIBCURL_OpenSSL=$(if $(CONFIG_LIBCURL_OPENSSL),yes,no) \
 	PECL_cv_HAVE_LIBCURL_GnuTLS=$(if $(CONFIG_LIBCURL_GNUTLS),yes,no) \
