@@ -118,6 +118,7 @@ CONFIGURE_ARGS += \
 	--disable-ipfs \
 	--enable-shared \
 	--enable-static \
+	--without-brotli \
 	--without-nss \
 	--without-librtmp \
 	--without-ca-path \
