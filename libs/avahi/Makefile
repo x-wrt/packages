@@ -218,6 +218,23 @@ $(call Package/avahi/Default/description)
  For more information please see the avahi documentation.
 endef
 
+define Package/libavahi-compat-libdnssd
+  $(call Package/avahi/Default)
+  SECTION:=libs
+  CATEGORY:=Libraries
+  VARIANT:=dbus
+  DEPENDS:=+libavahi-client
+  TITLE+= (libdnssd)
+endef
+
+define Package/libavahi-compat-libdnssd/description
+$(call Package/avahi/Default/description)
+ .
+ This packages adds the libavahi-compat-libdnssd library.
+ It also automatically adds the required libavahi-client package.
+ For more information please see the avahi documentation.
+endef
+
 define Package/avahi-utils
   $(call Package/avahi/Default)
   SUBMENU:=IP Addresses and Names
@@ -278,6 +295,10 @@ CONFIGURE_ARGS += \
 	--with-autoipd-group=avahi
 
 ifeq ($(BUILD_VARIANT),dbus)
+ifneq ($(CONFIG_PACKAGE_libavahi-compat-libdnssd),)
+CONFIGURE_ARGS += \
+	--enable-compat-libdns_sd
+endif
 CONFIGURE_ARGS += \
 	--enable-dbus
 else
@@ -294,6 +315,11 @@ define Build/InstallDev
 	$(CP) $(PKG_INSTALL_DIR)/usr/include/* $(1)/usr/include/
 	$(INSTALL_DIR) $(1)/usr/lib
 	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libavahi-* $(1)/usr/lib/
+ifneq ($(CONFIG_PACKAGE_libavahi-compat-libdnssd),)
+ifeq ($(BUILD_VARIANT),dbus)
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libdns_sd* $(1)/usr/lib/
+endif
+endif
 	$(INSTALL_DIR) $(1)/usr/lib/pkgconfig
 	$(INSTALL_DATA) $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/* $(1)/usr/lib/pkgconfig/
 endef
@@ -314,6 +340,11 @@ Package/libavahi-nodbus-support/install=$(Package/libavahi/install)
 define Package/libavahi-client/install
 	$(INSTALL_DIR) $(1)/usr/lib
 	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libavahi-client.so.* $(1)/usr/lib/
+endef
+
+define Package/libavahi-compat-libdnssd/install
+	$(INSTALL_DIR) $(1)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libdns_sd.so* $(1)/usr/lib/
 endef
 
 define Package/avahi-utils/install
@@ -363,6 +394,7 @@ define Package/avahi-dnsconfd/install
 endef
 
 $(eval $(call BuildPackage,libavahi-client))
+$(eval $(call BuildPackage,libavahi-compat-libdnssd))
 $(eval $(call BuildPackage,avahi-utils))
 $(eval $(call BuildPackage,libavahi-dbus-support))
 $(eval $(call BuildPackage,libavahi-nodbus-support))
