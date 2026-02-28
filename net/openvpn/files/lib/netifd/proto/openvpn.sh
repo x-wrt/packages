@@ -45,6 +45,7 @@ option_builder() {
 					;;
 				uinteger|integer|string)
 					json_get_var v "$f"
+					[ "$f" = "ovpnproto" ] && f=proto
 					[ -n "$v" ] && append exec_params " --${f//_/-} $v"
 					;;
 				file)
@@ -53,8 +54,15 @@ option_builder() {
 					[ -n "$v" ] && append exec_params " --${f//_/-} $v"
 					;;
 				list)
-					json_get_values v "$f"
-					[ -n "${v}" ] && append exec_params "$(for d in $v; do echo " --${f//_/-} $d"; done)"
+					if json_select "$f" 2>/dev/null; then
+						local index=1
+						local d
+						while json_get_var d "$index"; do
+							echo "${f//_/-} \"$d\"" >> "/var/run/openvpn.$config.list.conf"
+							index=$((index + 1))
+						done
+						json_select ..
+					fi
 					;;
 			esac
 		fi
@@ -104,6 +112,8 @@ proto_openvpn_setup() {
 
 	exec_params=
 
+	rm -f "/var/run/openvpn.$config.list.conf"
+
 	json_get_var allow_deprecated allow_deprecated
 
 	# Build exec params from configured options we get from ubus values stored during init_config
@@ -152,6 +162,10 @@ proto_openvpn_setup() {
 	# ${tls_exit:+--tls-exit} \
 
 	json_get_var dev_type dev_type
+
+	local list_config_arg=""
+	[ -f "/var/run/openvpn.$config.list.conf" ] && list_config_arg="--config /var/run/openvpn.$config.list.conf"
+
 	# shellcheck disable=SC2086
 	proto_run_command "$config" openvpn \
 		$([ -z "$dev_type" ] && echo " --dev-type tun") \
@@ -159,6 +173,7 @@ proto_openvpn_setup() {
 		--status "/var/run/openvpn.$config.status" \
 		--syslog "openvpn_$config" \
 		--tmp-dir "/var/run" \
+		$list_config_arg \
 		$exec_params
 
 	# last param wins; user provided status or syslog supersedes these.
