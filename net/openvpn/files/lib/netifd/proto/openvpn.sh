@@ -53,8 +53,15 @@ option_builder() {
 					[ -n "$v" ] && append exec_params " --${f//_/-} $v"
 					;;
 				list)
-					json_get_values v "$f"
-					[ -n "${v}" ] && append exec_params "$(for d in $v; do echo " --${f//_/-} $d"; done)"
+					if json_select "$f" 2>/dev/null; then
+						local index=1
+						local d
+						while json_get_var d "$index"; do
+							echo "${f//_/-} \"$d\"" >> "/var/run/openvpn.$config.list.conf"
+							index=$((index + 1))
+						done
+						json_select ..
+					fi
 					;;
 			esac
 		fi
@@ -94,6 +101,7 @@ proto_openvpn_init_config() {
 	option_builder add OPENVPN_PARAMS_FILE file
 	option_builder add OPENVPN_LIST list
 
+	proto_config_add_string "ovpnproto:string"
 }
 
 
@@ -103,6 +111,8 @@ proto_openvpn_setup() {
 	allow_deprecated=0
 
 	exec_params=
+
+	rm -f "/var/run/openvpn.$config.list.conf"
 
 	json_get_var allow_deprecated allow_deprecated
 
@@ -153,14 +163,19 @@ proto_openvpn_setup() {
 
 	json_get_var dev_type dev_type
 	json_get_var ovpnproto ovpnproto
+
+	local list_config_arg=""
+	[ -f "/var/run/openvpn.$config.list.conf" ] && list_config_arg="--config /var/run/openvpn.$config.list.conf"
+
 	# shellcheck disable=SC2086
 	proto_run_command "$config" openvpn \
 		$([ -z "$dev_type" ] && echo " --dev-type tun") \
-		$([ -z "$ovpnproto" ] && echo " --proto $ovpnproto") \
+		$([ -n "$ovpnproto" ] && echo " --proto $ovpnproto") \
 		--cd "$cd_dir" \
 		--status "/var/run/openvpn.$config.status" \
 		--syslog "openvpn_$config" \
 		--tmp-dir "/var/run" \
+		$list_config_arg \
 		$exec_params
 
 	# last param wins; user provided status or syslog supersedes these.
