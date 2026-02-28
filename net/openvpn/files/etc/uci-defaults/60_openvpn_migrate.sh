@@ -3,6 +3,8 @@
 OPENVPN_PKG="openvpn"
 NETWORK_PKG="network"
 
+LIST_OPTS=" push route route_ipv6 remote pull_filter tls_cipher "
+
 # Exit if no openvpn config exists
 uci -q show "$OPENVPN_PKG" >/dev/null || exit 0
 
@@ -37,7 +39,15 @@ while read -r sec; do
 
 		opt="${key##*.}"
 
-		echo "set $NETWORK_PKG.$iface.$opt=$val"
+		eval "set -- $val"
+
+		if [ $# -gt 1 ] || echo "$LIST_OPTS" | grep -q " $opt "; then
+			for item in "$@"; do
+				echo "add_list $NETWORK_PKG.$iface.$opt='$item'"
+			done
+		else
+			echo "set $NETWORK_PKG.$iface.$opt='$1'"
+		fi
 	done
 done
 
