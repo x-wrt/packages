@@ -10,6 +10,47 @@
 	exit
 }
 
+. /lib/functions.sh
+. /lib/netifd/netifd-proto.sh
+
+case "$script_type" in
+	up)
+		proto_init_update "$dev" 1
+
+		if [ -n "$ifconfig_local" ]; then
+			proto_add_ipv4_address "$ifconfig_local" "${ifconfig_netmask:-255.255.255.255}"
+		fi
+		if [ -n "$trusted_ip" ] && [ -n "$route_net_gateway" ]; then
+			proto_add_ipv4_route "$trusted_ip" 32 "$route_net_gateway"
+			logger -t openvpn-hotplug "Added host route for server $trusted_ip via gw $route_net_gateway"
+		fi
+		if [ -n "$route_vpn_gateway" ]; then
+			proto_add_ipv4_route "0.0.0.0" 0 "$route_vpn_gateway"
+		fi
+
+		if [ -n "$tun_mtu" ]; then
+			json_add_int mtu "$tun_mtu"
+		fi
+
+		for i in $(seq 1 10); do
+			eval option=\$foreign_option_$i
+			[ -z "$option" ] && break
+
+			if echo "$option" | grep -q "DNS"; then
+				dns_ip=$(echo "$option" | awk '{print $3}')
+				proto_add_dns_server "$dns_ip"
+			fi
+		done
+
+		proto_send_update "$INTERFACE"
+	;;
+
+	down)
+		proto_init_update "$dev" 0
+		proto_send_update "$INTERFACE"
+	;;
+esac
+
 ACTION="$script_type"
 INSTANCE="$INTERFACE"
 

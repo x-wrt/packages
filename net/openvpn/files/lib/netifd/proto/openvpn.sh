@@ -129,7 +129,6 @@ proto_openvpn_setup() {
 	append exec_params "--status /var/run/openvpn.$config.status"
 	append exec_params "--syslog openvpn_$config"
 	append exec_params "--tmp-dir /tmp"
-	[ -n "$config_file" ] && append exec_params "--config \"$config_file\""
 
 	json_get_var ALLOW_DEPRECATED allow_deprecated
 	[ -z "$ALLOW_DEPRECATED" ] && ALLOW_DEPRECATED=0
@@ -144,7 +143,7 @@ proto_openvpn_setup() {
 
 	proto_add_dynamic_defaults
 
-	json_get_vars username password cert_password
+	json_get_vars auth_user_pass askpass username password cert_password
 
 	mkdir -p /var/run
 	# combine into --askpass:
@@ -174,9 +173,7 @@ proto_openvpn_setup() {
 
 	# Check 'script_security' option
 	json_get_var script_security script_security
-	[ -z "$script_security" ] && {
-		script_security=3
-	}
+	[ -z "$script_security" ] && script_security=3
 
 	# Add default hotplug handling if 'script_security' option is equal '3'
 	if [ "$script_security" -eq '3' ]; then
@@ -194,44 +191,73 @@ proto_openvpn_setup() {
 		json_get_vars up down route_up route_pre_down
 		json_get_vars tls_crypt_v2_verify mode learn_address client_connect
 		json_get_vars client_crresponse client_disconnect auth_user_pass_verify
+
+		json_get_vars ifconfig_noexec route_noexec
+		[ -z "$ifconfig_noexec" ] && append exec_params "--ifconfig-noexec"
+		[ -z "$route_noexec" ] && append exec_params "--route-noexec"
+
 		append exec_params "--up '/usr/libexec/openvpn-hotplug'"
-		[ -n "$up" ] && append exec_params "--setenv user_up '$up'"
+		[ -n "$up" ] && {
+			append exec_params "--setenv user_up '$up'"
+		}
 
 		append exec_params "--down '/usr/libexec/openvpn-hotplug'"
-		[ -n "$down" ] && append exec_params "--setenv user_down '$down'"
+		[ -n "$down" ] && {
+			append exec_params "--setenv user_down '$down'"
+		}
 
 		append exec_params "--route-up '/usr/libexec/openvpn-hotplug'"
-		[ -n "$route_up" ] && append exec_params "--setenv user_route_up '$route_up'"
+		[ -n "$route_up" ] && {
+			append exec_params "--setenv user_route_up '$route_up'"
+		}
 
 		append exec_params "--route-pre-down '/usr/libexec/openvpn-hotplug'"
-		[ -n "$route_pre_down" ] && append exec_params "--setenv user_route_pre_down '$route_pre_down'"
+		[ -n "$route_pre_down" ] && {
+			append exec_params "--setenv user_route_pre_down '$route_pre_down'"
+		}
 
-		append exec_params "--tls-crypt-v2-verify '/usr/libexec/openvpn-hotplug'"
-		[ -n "$tls_crypt_v2_verify" ] && append exec_params "--setenv user_tls_crypt_v2_verify '$tls_crypt_v2_verify'"
+		[ -n "$tls_crypt_v2_verify" ] && {
+			append exec_params "--tls-crypt-v2-verify '/usr/libexec/openvpn-hotplug'"
+			append exec_params "--setenv user_tls_crypt_v2_verify '$tls_crypt_v2_verify'"
+		}
 
 		[ "$mode" = 'server' ] && {
-			append exec_params "--learn-address '/usr/libexec/openvpn-hotplug'"
-			[ -n "$learn_address" ] && append exec_params "--setenv user_learn_address '$learn_address'"
-			append exec_params "--client-connect '/usr/libexec/openvpn-hotplug'"
-			[ -n "$client_connect" ] && append exec_params "--setenv user_client_connect '$client_connect'"
-			append exec_params "--client-crresponse '/usr/libexec/openvpn-hotplug'"
-			[ -n "$client_crresponse" ] && append exec_params "--setenv user_client_crresponse '$client_crresponse'"
-			append exec_params "--client-disconnect '/usr/libexec/openvpn-hotplug'"
-			[ -n "$client_disconnect" ] && append exec_params "--setenv user_client_disconnect '$client_disconnect'"
-			append exec_params "--auth-user-pass-verify '/usr/libexec/openvpn-hotplug' via-file"
-			[ -n "$auth_user_pass_verify" ] && append exec_params "--setenv user_auth_user_pass_verify '$auth_user_pass_verify'"
+			[ -n "$learn_address" ] && {
+				append exec_params "--learn-address '/usr/libexec/openvpn-hotplug'"
+				append exec_params "--setenv user_learn_address '$learn_address'"
+			}
+			[ -n "$client_connect" ] && {
+				append exec_params "--client-connect '/usr/libexec/openvpn-hotplug'"
+				append exec_params "--setenv user_client_connect '$client_connect'"
+			}
+			[ -n "$client_crresponse" ] && {
+				append exec_params "--client-crresponse '/usr/libexec/openvpn-hotplug'"
+				append exec_params "--setenv user_client_crresponse '$client_crresponse'"
+			}
+			[ -n "$client_disconnect" ] && {
+				append exec_params "--client-disconnect '/usr/libexec/openvpn-hotplug'"
+				append exec_params "--setenv user_client_disconnect '$client_disconnect'"
+			}
+			[ -n "$auth_user_pass_verify" ] && {
+				append exec_params "--auth-user-pass-verify '/usr/libexec/openvpn-hotplug' via-file"
+				append exec_params "--setenv user_auth_user_pass_verify '$auth_user_pass_verify'"
+			}
 		}
 
 		json_get_vars client tls_client tls_server
 		if [ "$client" = 1 ] || [ "$tls_client" = 1 ]; then
-			append exec_params "--ipchange '/usr/libexec/openvpn-hotplug'"
 			json_get_var ipchange ipchange
-			[ -n "$ipchange" ] && append exec_params "--setenv user_ipchange '$ipchange'"
+			[ -n "$ipchange" ] && {
+				append exec_params "--ipchange '/usr/libexec/openvpn-hotplug'"
+				append exec_params "--setenv user_ipchange '$ipchange'"
+			}
 		fi
 
 		if [ "$tls_client" = 1 ] || [ "$tls_server" = 1 ]; then
-			append exec_params "--tls-verify '/usr/libexec/openvpn-hotplug'"
-			[ -n "$tls_verify" ] && append exec_params "--setenv user_tls_verify '$tls_verify'"
+			[ -n "$tls_verify" ] && {
+				append exec_params "--tls-verify '/usr/libexec/openvpn-hotplug'"
+				append exec_params "--setenv user_tls_verify '$tls_verify'"
+			}
 		fi
 	else
 		logger -t "openvpn(proto)" \
