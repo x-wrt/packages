@@ -7,7 +7,7 @@ main() {
 		env -i ACTION="$ACTION" INSTANCE="$INSTANCE" \
 			/bin/sh \
 			/etc/openvpn.user \
-			$*
+			"$@"
 	}
 
 	# Wrap user defined scripts on up|down|route-up|route-pre-down|ipchange|etc
@@ -47,15 +47,15 @@ main() {
 	tls-verify)
 		command=$user_tls_verify
 		;;
-	auth-user-pass-verify)
+	user-pass-verify|auth-user-pass-verify)
 		command=$user_auth_user_pass_verify
 		;;
 	esac
 
 	if [ -n "$command" ]; then
 		shift
-		exec /bin/sh -c "$command $*"
+		exec /bin/sh -c "$command \"\$@\"" -- "$@"
 	fi
 }
 
-main
+main "$@"
