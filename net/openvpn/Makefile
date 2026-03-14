@@ -37,10 +37,12 @@ define Package/openvpn/Default
   SUBMENU:=VPN
   MENU:=1
   DEPENDS:=+kmod-tun \
+	   +@BUSYBOX_CONFIG_ASH_BASH_COMPAT \
+	   +@BUSYBOX_CONFIG_FLOCK \
+	   +ip \
 	   +libcap-ng \
 	   +OPENVPN_$(1)_ENABLE_LZO:liblzo \
 	   +OPENVPN_$(1)_ENABLE_LZ4:liblz4 \
-	   +OPENVPN_$(1)_ENABLE_IPROUTE2:ip \
 	   +OPENVPN_$(1)_ENABLE_DCO:libnl-genl \
 	   +OPENVPN_$(1)_ENABLE_DCO:kmod-ovpn-backports \
 	   $(3)
@@ -120,6 +122,7 @@ define Package/openvpn-$(BUILD_VARIANT)/install
 	$(INSTALL_DIR) $(1)/usr/share/openvpn
 	$(INSTALL_DATA) \
 		files/usr/share/openvpn/openvpn.options \
+		files/usr/share/openvpn/config.awk \
 		$(1)/usr/share/openvpn/
 	$(INSTALL_BIN) \
 		files/usr/share/openvpn/up.uc \
@@ -153,6 +156,9 @@ define Package/openvpn-$(BUILD_VARIANT)/install
 	$(INSTALL_DATA) \
 		files/etc/hotplug.d/openvpn/01-user \
 		$(1)/etc/hotplug.d/openvpn/
+
+	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
+	$(INSTALL_DATA) files/etc/hotplug.d/iface/90-openvpn $(1)/etc/hotplug.d/iface/
 endef
 
 $(eval $(call BuildPackage,openvpn-openssl))
