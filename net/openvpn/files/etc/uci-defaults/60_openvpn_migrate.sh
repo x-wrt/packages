@@ -52,4 +52,6 @@ in_section {
 }
 ' "$OPENVPN_PKG" >> "$NETWORK_PKG"
 
+mv "$OPENVPN_PKG" "${OPENVPN_PKG}_migrated"
+
 exit 0
