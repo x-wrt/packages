@@ -6,7 +6,7 @@ config OPENVPN_mbedtls_ENABLE_LZO
 
 config OPENVPN_mbedtls_ENABLE_LZ4
 	bool "Enable LZ4 compression support"
-	default n
+	default y
 
 config OPENVPN_mbedtls_ENABLE_MANAGEMENT
 	bool "Enable management server support"
