@@ -45,7 +45,7 @@ define Package/python3-setools
   SUBMENU:=Python
   TITLE:=SETools Python bindings
   URL:=http://selinuxproject.org/page/Main_Page
-  DEPENDS:=+python3-light +python3-logging +python3-pkg-resources +libselinux +libsepol
+  DEPENDS:=+python3-light +python3-logging +python3-packaging +libselinux +libsepol
 endef
 
 define Package/python3-setools/description

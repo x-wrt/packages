@@ -38,7 +38,7 @@ define Package/fail2ban
   +python3-logging \
   +python3-sqlite3 \
   +python3-urllib \
-  +python3-pkg-resources
+  +python3-packaging
 endef
 
 define Package/fail2ban/description
