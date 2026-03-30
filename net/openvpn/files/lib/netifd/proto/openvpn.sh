@@ -199,6 +199,9 @@ proto_openvpn_setup() {
 		logger -t "openvpn(proto)" \
 			-p daemon.info "Enabled default hotplug processing, as the openvpn configuration 'script_security' is '3'"
 
+		json_get_vars metric
+		test -n "$metric" && append exec_params "--setenv METRIC $metric"
+
 		append exec_params "--setenv INTERFACE $config"
 		append exec_params "--script-security 3"
 
