@@ -49,8 +49,23 @@ case "$script_type" in
 
 		[ -n "$ifconfig_local" ] && proto_add_ipv4_address "$ifconfig_local" "${ifconfig_netmask:-255.255.255.255}"
 
-		[ -n "$trusted_ip" ] && [ -n "$route_net_gateway" ] && {
-			proto_add_ipv4_route "$trusted_ip" 32 "$route_net_gateway"
+		[ -n "$trusted_ip" ] && {
+			if [ -n "$route_net_gateway" -a "$route_net_gateway" != "0.0.0.0" ]; then
+				ip route add "$trusted_ip" "$route_net_gateway"
+			else
+				ROUTE=$(ip route get $trusted_ip 2>/dev/null)
+				DEV=$(echo "$ROUTE" | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}')
+				GW=$(echo "$ROUTE" | awk '{for(i=1;i<=NF;i++) if($i=="via") print $(i+1)}')
+				if [ -n "$GW" -a -n "$DEV" ]; then
+					ip route replace $trusted_ip via $GW dev $DEV ${METRIC:+metric $METRIC}
+					logger -t "openvpn_$INTERFACE[$daemon_pid]" "ip route replace $trusted_ip via $GW dev $DEV ${METRIC:+metric $METRIC}"
+				elif [ -n "$DEV" ]; then
+					ip route replace $trusted_ip dev $DEV ${METRIC:+metric $METRIC}
+					logger -t "openvpn_$INTERFACE[$daemon_pid]" "ip route replace $trusted_ip dev $DEV ${METRIC:+metric $METRIC}"
+				else
+					logger -t "openvpn_$INTERFACE[$daemon_pid]" "IP route lookup failed for $trusted_ip"
+				fi
+			fi
 		}
 
 		[ -n "$route_vpn_gateway" ] && proto_add_ipv4_route "0.0.0.0" 0 "$route_vpn_gateway"
@@ -71,8 +86,19 @@ case "$script_type" in
 			proto_add_ipv6_address "$v6addr" "$v6plen"
 		fi
 
-		[ -n "$trusted_ip6" ] && [ -n "$route_ipv6_gateway" ] && {
-			proto_add_ipv6_route "$trusted_ip6" 128 "$route_ipv6_gateway"
+		[ -n "$trusted_ip6" ] && {
+			ROUTE=$(ip -6 route get $trusted_ip6 2>/dev/null)
+			DEV=$(echo "$ROUTE" | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}')
+			GW=$(echo "$ROUTE" | awk '{for(i=1;i<=NF;i++) if($i=="via") print $(i+1)}')
+			if [ -n "$GW" -a -n "$DEV" ]; then
+				ip -6 route replace $trusted_ip6 via $GW dev $DEV ${METRIC:+metric $METRIC}
+				logger -t "openvpn_$INTERFACE[$daemon_pid]" "ip -6 route replace $trusted_ip6 via $GW dev $DEV ${METRIC:+metric $METRIC}"
+			elif [ -n "$DEV" ]; then
+				ip -6 route replace $trusted_ip6 dev $DEV ${METRIC:+metric $METRIC}
+				logger -t "openvpn_$INTERFACE[$daemon_pid]" "ip -6 route replace $trusted_ip6 dev $DEV ${METRIC:+metric $METRIC}"
+			else
+				logger -t "openvpn_$INTERFACE[$daemon_pid]" "IPv6 route lookup failed for $trusted_ip6"
+			fi
 		}
 
 		[ -n "$ifconfig_ipv6_remote" ] && proto_add_ipv6_route "::" 0 "$ifconfig_ipv6_remote"
