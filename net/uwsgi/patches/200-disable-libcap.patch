@@ -1,0 +1,13 @@
+diff --git a/uwsgiconfig.py b/uwsgiconfig.py
+index 14b4635..e562b50 100644
+--- a/uwsgiconfig.py
++++ b/uwsgiconfig.py
+@@ -1122,7 +1122,7 @@ class uConf(object):
+                 report['routing'] = True
+ 
+ 
+-        if self.has_include('sys/capability.h') and uwsgi_os == 'Linux':
++        if False and uwsgi_os == 'Linux':
+             self.cflags.append("-DUWSGI_CAP")
+             self.libs.append('-lcap')
+             report['capabilities'] = True

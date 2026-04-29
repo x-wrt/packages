@@ -35,7 +35,7 @@ define Package/uwsgi
   SUBMENU:=Web Servers/Proxies
   TITLE:=The uWSGI server
   URL:=https://uwsgi-docs.readthedocs.io/en/latest/
-  DEPENDS:=+libpcre2 +libcap +libuuid
+  DEPENDS:=+libpcre2 +libuuid
 endef
 
 define Package/uwsgi-logfile-plugin
