@@ -37,6 +37,7 @@ define Package/openvpn/Default
   SUBMENU:=VPN
   MENU:=1
   DEPENDS:=+kmod-tun \
+	   +@BUSYBOX_CONFIG_ASH_BASH_COMPAT \
 	   +libcap-ng \
 	   +OPENVPN_$(1)_ENABLE_LZO:liblzo \
 	   +OPENVPN_$(1)_ENABLE_LZ4:liblz4 \
