@@ -13,13 +13,29 @@
 	init_proto "$@"
 }
 
+CONF_DIR="/var/run"
+CONF_PREFIX="${CONF_DIR}/openvpn."
+
+quote_config_arg() {
+	local value="$1"
+	value="${value//\\/\\\\}"
+	value="${value//\"/\\\"}"
+	printf '"%s"' "$value"
+}
+
+append_config() {
+	# Each call contributes one complete directive; values may contain -- or backslashes.
+	append exec_params "${1#--}" "
+"
+}
+
 # Helper to DRY up repeated option handling in init/setup
 option_builder() {
 	# option_builder <action:add|build> <LIST_VAR_NAME> <type>
 	local action="$1"; shift
 	local list_var="$1"; shift
 	local opt_type="$1"; shift
-	local f v
+	local f v legacy
 
 	for f in $(eval echo \$"$list_var")
 	do
@@ -41,44 +57,73 @@ option_builder() {
 			case "$opt_type" in
 				bool)
 					json_get_var v "$f"
-					[ "$v" = 1 ] && append exec_params "--${f//_/-}"
+					[ "$v" = 1 ] && append_config "--${f//_/-}"
 					;;
 				uinteger|integer|string)
 					json_get_var v "$f"
 					case $f in
+						tun_mtu_max)
+							[ -n "$v" ] || json_get_var v tun_max_mtu
+							[ -n "$v" ] && append_config "--tun-mtu-max $v"
+						;;
+						auth_gen_token)
+							# Older UCI configurations split the enable flag and lifetime.
+							json_get_var legacy auth_gen_token_lifetime
+							[ "$v" = 1 ] && [ -n "$legacy" ] && v="$legacy"
+							[ -n "$v" ] && append_config "--auth-gen-token $v"
+						;;
 						push_remove)
-							[ -n "$v" ] && append exec_params "--${f//_/-} '$v'"
+							[ -n "$v" ] && append_config "--${f//_/-} $(quote_config_arg "$v")"
 						;;
 						*)
-							[ -n "$v" ] && append exec_params "--${f//_/-} $v"
+							[ -n "$v" ] && append_config "--${f//_/-} $v"
 						;;
 					esac
 					;;
 				file)
 					json_get_var v "$f"
-					[ -f "$v" ] || continue
-					[ -n "$v" ] && append exec_params "--${f//_/-} '$v'"
+					if [ "$f" = "auth_user_pass_verify" ]; then
+						[ -n "$v" ] && append_config "--auth-user-pass-verify $(quote_config_arg "$v") via-file"
+						continue
+					fi
+					# Do not silently drop a metadata verifier if its file is missing.
+					if [ "$f" != "tls_crypt_v2_verify" ]; then
+						[ -f "$v" ] || continue
+					fi
+					[ -n "$v" ] && append_config "--${f//_/-} $(quote_config_arg "$v")"
 					;;
 				list)
 					local type
 					json_get_type type "$f"
 					case "$type" in
 					object|array)
-						local keys key
+						local keys key joined=
 						json_select "$f"
 						json_get_keys keys
 						for key in $keys; do
 							json_get_var val "$key"
 							case $f in
+								data_ciphers|tls_cipher|tls_ciphersuites|tls_groups)
+									[ -n "$val" ] && append joined "$val" ':'
+								;;
 								push)
-									append exec_params "--${f//_/-} '$val'"
+									append_config "--${f//_/-} $(quote_config_arg "$val")"
 								;;
 								*)
-									append exec_params "--${f//_/-} $val"
+									append_config "--${f//_/-} $val"
 								;;
 							esac
 						done
 						json_select ..
+						[ -n "$joined" ] && append_config "--${f//_/-} $(quote_config_arg "$joined")"
+						;;
+					string)
+						case "$f" in
+							data_ciphers|tls_cipher|tls_ciphersuites|tls_groups)
+								json_get_var v "$f"
+								[ -n "$v" ] && append_config "--${f//_/-} $(quote_config_arg "$v")"
+							;;
+						esac
 						;;
 					*)  ;;
 					esac
@@ -92,6 +137,7 @@ option_builder() {
 # Not real config params used by openvpn - only by our proto handler
 PROTO_BOOLS='
 allow_deprecated
+defaultroute
 ipv6
 '
 
@@ -100,6 +146,16 @@ username
 password
 cert_password
 ovpnproto
+'
+
+PROTO_INTS='
+metric
+'
+
+# Legacy names are accepted as inputs, never emitted as OpenVPN options.
+PROTO_UINTS='
+auth_gen_token_lifetime
+tun_max_mtu
 '
 
 proto_openvpn_init_config() {
@@ -116,6 +172,8 @@ proto_openvpn_init_config() {
 	# Add proto config options - netifd compares these for changes between interface events
 	option_builder add PROTO_BOOLS protobool
 	option_builder add PROTO_STRINGS string
+	option_builder add PROTO_INTS integer
+	option_builder add PROTO_UINTS uinteger
 	option_builder add OPENVPN_BOOLS bool
 	option_builder add OPENVPN_UINTS uinteger
 	option_builder add OPENVPN_INTS integer
@@ -124,26 +182,102 @@ proto_openvpn_init_config() {
 	option_builder add OPENVPN_LIST list
 }
 
+# Rewrite literal include tokens, including quoted paths and trailing comments.
+rewrite_config_line() {
+	local dst="$1" tmp="$1.rewrite"
+	(
+		umask 077
+		OPENVPN_CONFIG_ACTION=rewrite OPENVPN_CONFIG_OLD="$2" OPENVPN_CONFIG_NEW="$3" \
+			awk -f /usr/share/openvpn/config.awk "$dst" > "$tmp"
+	) && mv "$tmp" "$dst" && return 0
+	rm -f "$tmp"
+	return 1
+}
+
+# Recursively copy config files referenced by `config` directives.
+# Updates the `config` paths in the destination file to point to the copies.
+# Appends all copied files to the global CONFIG_FILES variable.
+#
+# Usage: copy_config_recursive <dst_file> <visited>
+#   dst_file: the already-copied config file to scan for `config` lines
+#   visited:  pipe-delimited list of source paths already processed (cycle guard)
+copy_config_recursive() {
+	local dst="$1"
+	local visited="$2"
+	local ref original_ref dst_ref fname refs
+
+	refs="$(OPENVPN_CONFIG_ACTION=includes awk -f /usr/share/openvpn/config.awk "$dst")" || return 1
+	while IFS= read -r ref; do
+		# skip empty lines
+		[ -n "$ref" ] || continue
+		case "$ref" in
+			*"$CONF_PREFIX"*) continue ;;
+		esac
+
+		original_ref="$ref"
+		# expand relative path to absolute using cd_dir
+		case "$ref" in
+			/*) ;;
+			*) ref="$cd_dir/$ref" ;;
+		esac
+
+		# cycle guard
+		case "$visited" in
+			*"|$ref|"*) continue ;;
+		esac
+
+		[ -f "$ref" ] || return 1
+
+		fname="${ref##*/}"
+		config_copy_id=$((config_copy_id + 1))
+		dst_ref="${CONF_PREFIX}${config}.user_${config_copy_id}_${fname}"
+
+		cp "$ref" "$dst_ref" || {
+			logger -t "openvpn_$config(proto)" -p daemon.err "failed to copy config $(quote_config_arg "$ref") to $(quote_config_arg "$dst_ref")"
+			return 1
+		}
+
+		# rewrite the `config` line in the parent file to point to the copy
+		rewrite_config_line "$dst" "$original_ref" "$dst_ref" || return 1
+
+		# accumulate file list
+		CONFIG_FILES="$CONFIG_FILES
+$dst_ref"
+
+		# recurse
+		copy_config_recursive "$dst_ref" "$visited|$ref|" || return 1
+
+	done <<EOF
+$refs
+EOF
+}
+
 proto_openvpn_setup() {
 	local config="$1"
-	local conf_file="/var/run/openvpn.$config.conf"
-	local exec_params cd_dir
+	local conf_file="${CONF_PREFIX}$config.conf"
+	local exec_params cd_dir cp_file auth_file
 
+	mkdir -p "$CONF_DIR"
 	exec_params=
 
-	json_get_var dev_type dev_type
-	[ -z "$dev_type" ] && append exec_params "--dev-type tun"
-	json_get_var ovpnproto ovpnproto
-	[ -n "$ovpnproto" ] && append exec_params "--proto $ovpnproto"
-
 	json_get_var config_file config
+	json_get_vars dev dev_type
+	if [ -z "$dev_type" ] && [ -z "$config_file" ]; then
+		case "$dev" in
+			tun*|tap*) ;; # Let OpenVPN infer the type from standard device names.
+			*) append_config "--dev-type tun" ;;
+		esac
+	fi
+	json_get_var ovpnproto ovpnproto
+	[ -n "$ovpnproto" ] && append_config "--proto $ovpnproto"
+
 	# shellcheck disable=SC2154
 	cd_dir="${config_file%/*}"
 	[ "$cd_dir" = "$config_file" ] && cd_dir="/"
-	append exec_params "--cd $cd_dir"
-	append exec_params "--status /var/run/openvpn.$config.status"
-	append exec_params "--syslog openvpn_$config"
-	append exec_params "--tmp-dir /tmp"
+	append_config "--cd $(quote_config_arg "$cd_dir")"
+	append_config "--status ${CONF_PREFIX}$config.status"
+	append_config "--syslog openvpn_$config"
+	append_config "--tmp-dir /tmp"
 
 	json_get_var ALLOW_DEPRECATED allow_deprecated
 	[ -z "$ALLOW_DEPRECATED" ] && ALLOW_DEPRECATED=0
@@ -160,116 +294,123 @@ proto_openvpn_setup() {
 
 	json_get_vars auth_user_pass askpass username password cert_password
 
-	mkdir -p /var/run
-	# combine into --askpass:
-	if [ -n "$cert_password" ]; then
-		cp_file="/var/run/openvpn.$config.pass"
-		umask 077
-		printf '%s\n' "${cert_password:-}" > "$cp_file"
-		umask 022
-		append exec_params "--askpass $cp_file"
-	elif [ -n "$askpass" ]; then
-		append exec_params "--askpass $askpass"
-	fi
-
-	# combine into --auth-user-pass:
-	if [ -n "$username" ] || [ -n "$password" ]; then
-		auth_file="/var/run/openvpn.$config.auth"
-		umask 077
-		printf '%s\n' "${username:-}" "${password:-}" > "$auth_file"
-		umask 022
-		append exec_params "--auth-user-pass $auth_file"
-	elif [ -n "$auth_user_pass" ]; then
-		append exec_params "--auth-user-pass $auth_user_pass"
-	fi
-
 	# Testing option
 	# ${tls_exit:+--tls-exit} \
 
 	# Check 'script_security' option
 	json_get_var script_security script_security
-	[ -z "$script_security" ] && script_security=3
+	[ -z "$script_security" ] && script_security=2
 
-	# Add default hotplug handling if 'script_security' option is equal '3'
-	if [ "$script_security" -eq '3' ]; then
-		local ipv6
-		local up down route_up route_pre_down
-		local client tls_client tls_server
-		local tls_crypt_v2_verify mode learn_address client_connect
-		local client_crresponse client_disconnect auth_user_pass_verify
-
-		logger -t "openvpn(proto)" \
-			-p daemon.info "Enabled default hotplug processing, as the openvpn configuration 'script_security' is '3'"
-
-		append exec_params "--setenv INTERFACE $config"
-		append exec_params "--script-security 3"
-
-		json_get_vars up down route_up route_pre_down
-		json_get_vars tls_crypt_v2_verify mode learn_address client_connect
-		json_get_vars client_crresponse client_disconnect auth_user_pass_verify
-
-		json_get_vars ipv6
-		#default ipv6 is enabled
-		[ -n "$ipv6" ] || ipv6=1
-		append exec_params "--setenv IPV6 '$ipv6'"
-
-		json_get_vars ifconfig_noexec route_noexec
-		[ -z "$ifconfig_noexec" ] && append exec_params "--ifconfig-noexec"
-		[ -z "$route_noexec" ] && append exec_params "--route-noexec"
-
-		append exec_params "--up '/usr/libexec/openvpn-hotplug'"
-		[ -n "$up" ] && append exec_params "--setenv user_up '$up'"
-
-		append exec_params "--down '/usr/libexec/openvpn-hotplug'"
-		[ -n "$down" ] && append exec_params "--setenv user_down '$down'"
-
-		append exec_params "--route-up '/usr/libexec/openvpn-hotplug'"
-		[ -n "$route_up" ] && append exec_params "--setenv user_route_up '$route_up'"
-
-		append exec_params "--route-pre-down '/usr/libexec/openvpn-hotplug'"
-		[ -n "$route_pre_down" ] && append exec_params "--setenv user_route_pre_down '$route_pre_down'"
-
-		append exec_params "--tls-crypt-v2-verify '/usr/libexec/openvpn-hotplug'"
-		[ -n "$tls_crypt_v2_verify" ] && append exec_params "--setenv user_tls_crypt_v2_verify '$tls_crypt_v2_verify'"
-
-		[ "$mode" = 'server' ] && {
-			append exec_params "--learn-address '/usr/libexec/openvpn-hotplug'"
-			[ -n "$learn_address" ] && append exec_params "--setenv user_learn_address '$learn_address'"
-			append exec_params "--client-connect '/usr/libexec/openvpn-hotplug'"
-			[ -n "$client_connect" ] && append exec_params "--setenv user_client_connect '$client_connect'"
-			append exec_params "--client-crresponse '/usr/libexec/openvpn-hotplug'"
-			[ -n "$client_crresponse" ] && append exec_params "--setenv user_client_crresponse '$client_crresponse'"
-			append exec_params "--client-disconnect '/usr/libexec/openvpn-hotplug'"
-			[ -n "$client_disconnect" ] && append exec_params "--setenv user_client_disconnect '$client_disconnect'"
-
-			[ -n "$auth_user_pass_verify" ] && {
-				append exec_params "--auth-user-pass-verify '/usr/libexec/openvpn-hotplug' via-file"
-				append exec_params "--setenv user_auth_user_pass_verify '$auth_user_pass_verify'"
-			}
-		}
-
-		json_get_vars client tls_client tls_server
-		if [ "$client" = 1 ] || [ "$tls_client" = 1 ]; then
-			append exec_params "--ipchange '/usr/libexec/openvpn-hotplug'"
-			json_get_var ipchange ipchange
-			[ -n "$ipchange" ] && append exec_params "--setenv user_ipchange '$ipchange'"
-		fi
-
-		if [ "$tls_client" = 1 ] || [ "$tls_server" = 1 ]; then
-			append exec_params "--tls-verify '/usr/libexec/openvpn-hotplug'"
-			json_get_var tls_verify tls_verify
-			[ -n "$tls_verify" ] && append exec_params "--setenv user_tls_verify '$tls_verify'"
-		fi
-	else
-		logger -t "openvpn(proto)" \
-			-p daemon.warn "Default hotplug processing disabled, as the openvpn configuration 'script_security' is less than '3'"
+	# Explicit UCI commands take precedence over callbacks in imported profiles.
+	if [ "$script_security" -ge 2 ]; then
+		local hook command
+		for hook in up down route_up route_pre_down tls_verify ipchange learn_address \
+			client_connect client_crresponse client_disconnect auth_user_pass_verify; do
+			json_get_var command "$hook"
+			[ -n "$command" ] && append_config "--setenv user_$hook $(quote_config_arg "$command")"
+		done
 	fi
 
-	eval "set -- $exec_params"
+	# Write first-phase params to conf_file
 	umask 077
-	printf "%b\n" "${exec_params//--/\\n}" > "$conf_file"
+	printf '%s\n' "$exec_params" > "$conf_file"
 	umask 022
-	proto_run_command "$config" openvpn --config "$conf_file"
+
+	local CONFIG_FILES="$conf_file" config_copy_id=0
+	# Copy user config and recursively copy all referenced config files,
+	# rewriting `config` directives to point to the copies in CONF_DIR.
+	local user_conf="${CONF_PREFIX}$config.user.conf"
+	if [ -n "$config_file" -a -e "$config_file" ]; then
+		cp "$config_file" "$user_conf" || {
+			logger -t "openvpn_$config(proto)" -p daemon.err "failed to copy config '$config_file'"
+			return 1
+		}
+		CONFIG_FILES="$CONFIG_FILES
+$user_conf"
+		copy_config_recursive "$user_conf" "" || return 1
+
+		# Imported callbacks retain native argv semantics; explicit UCI callbacks win later.
+		local hooks="$conf_file.hooks"
+		( umask 077; OPENVPN_CONFIG_ACTION=hooks awk -f /usr/share/openvpn/config.awk "$user_conf" > "$hooks" ) || return 1
+		cat "$conf_file" >> "$hooks" && mv "$hooks" "$conf_file" || return 1
+
+		# Update the `config` reference in conf_file to point to the copied user_conf.
+		rewrite_config_line "$conf_file" "$config_file" "$user_conf" || return 1
+	fi
+
+	if [ "$script_security" -ge 2 ]; then
+		local security="$conf_file.security"
+		( umask 077; OPENVPN_CONFIG_ACTION=security awk -f /usr/share/openvpn/config.awk "$conf_file" > "$security" ) || return 1
+		cat "$security" >> "$conf_file" && rm -f "$security" || return 1
+	fi
+
+	local ipv6 defaultroute metric
+	exec_params=
+
+	# combine into --askpass:
+	if [ -n "$cert_password" ]; then
+		cp_file="${CONF_PREFIX}$config.pass"
+		umask 077
+		printf '%s\n' "${cert_password:-}" > "$cp_file"
+		umask 022
+	elif [ -n "$askpass" ]; then
+		cp_file="$askpass"
+	fi
+
+	# combine into --auth-user-pass:
+	if [ -n "$username" ] || [ -n "$password" ]; then
+		auth_file="${CONF_PREFIX}$config.auth"
+		umask 077
+		printf '%s\n' "${username:-}" "${password:-}" > "$auth_file"
+		umask 022
+	elif [ -n "$auth_user_pass" ]; then
+		auth_file="$auth_user_pass"
+	fi
+
+	#Always Override Options
+	append exec_params "--setenv INTERFACE $config"
+	append exec_params "--script-security 3"
+	append exec_params "--ifconfig-noexec"
+	append exec_params "--route-noexec"
+	append exec_params "--up '/usr/libexec/openvpn-hotplug'"
+	append exec_params "--down '/usr/libexec/openvpn-hotplug'"
+	append exec_params "--route-up '/usr/libexec/openvpn-hotplug'"
+	append exec_params "--route-pre-down '/usr/libexec/openvpn-hotplug'"
+	append exec_params "--persist-tun"
+	append exec_params "--persist-key"
+
+	local is_client file
+	is_client="$(OPENVPN_CONFIG_ACTION=remote awk -f /usr/share/openvpn/config.awk "$conf_file")" || return 1
+
+	# Filter only real directives, preserving opaque inline data.
+	while IFS= read -r file; do
+		[ -n "$file" ] || continue
+		( umask 077; OPENVPN_CONFIG_ACTION=filter OPENVPN_REDIRECT_OVERRIDE="$is_client" awk -f /usr/share/openvpn/config.awk "$file" > "$file.filter" ) || return 1
+		mv "$file.filter" "$file" || return 1
+	done <<EOF
+$CONFIG_FILES
+EOF
+
+	json_get_vars ipv6 defaultroute metric
+	#default ipv6 is enabled
+	[ -n "$ipv6" ] || ipv6=1
+	append exec_params "--setenv IPV6 $ipv6"
+
+	[ -n "$metric" ] && append exec_params "--setenv METRIC $metric"
+
+	if [ "$is_client" = 1 ]; then
+		append exec_params "--redirect-gateway def1 ipv6"
+		[ -n "$defaultroute" ] || defaultroute=1
+	else
+		defaultroute=0
+	fi
+	append exec_params "--setenv DEFAULTROUTE $defaultroute"
+
+	# Read imported options first, then apply the network-managed overrides.
+	set -- openvpn --config "$conf_file" $exec_params
+	[ -n "$cp_file" ] && set -- "$@" --askpass "$cp_file"
+	[ -n "$auth_file" ] && set -- "$@" --auth-user-pass "$auth_file"
+	proto_run_command "$config" "$@"
 
 	# last param wins; user provided status or syslog supersedes.
 }
@@ -284,12 +425,14 @@ proto_openvpn_renew() {
 
 proto_openvpn_teardown() {
 	local iface="$1"
-	rm -f \
-		"/var/run/openvpn.$iface.conf" \
-		"/var/run/openvpn.$iface.pass" \
-		"/var/run/openvpn.$iface.auth" \
-		"/var/run/openvpn.$iface.status" 
+
 	proto_kill_command "$iface"
+	[ -n "$iface" ] && rm -f "${CONF_PREFIX}${iface}."*
+
+	/usr/libexec/openvpn-hotplug cleanup "$iface"
+
+	proto_init_update "*" 0
+	proto_send_update "$iface"
 }
 
 [ -n "$INCLUDE_ONLY" ] || {

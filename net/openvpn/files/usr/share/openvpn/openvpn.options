@@ -155,7 +155,6 @@ nice
 '
 
 OPENVPN_UINTS='
-auth_gen_token_lifetime
 bcast_buffers
 connect_retry
 connect_retry_max
@@ -195,11 +194,10 @@ status_version
 tcp_queue_limit
 tls_timeout
 tran_window
-tun_max_mtu
+tun_mtu_max
 tun_mtu
 tun_mtu_extra
 txqueuelen
-up_delay
 verb
 vlan_pvid
 '
@@ -264,6 +262,7 @@ test_crypto
 tls_client
 tls_exit
 tls_server
+up_delay
 up_restart
 use_prediction_resistance
 username_as_common_name
