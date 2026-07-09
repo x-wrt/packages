@@ -31,6 +31,7 @@ BEGIN {
 	sub(/^config[ \t]+openvpn/, "config interface")
 	print
 	print "\toption proto '\''openvpn'\''"
+	print "\toption auto '\''0'\''"
 	next
 }
 
@@ -46,6 +47,10 @@ in_section && /^[ \t]*option[ \t]+proto[ \t]/ {
 	next
 }
 
+# Inside openvpn section, remove old enable/disable/auto options
+in_section && /^[ \t]*option[ \t]+(enabled?|disabled?|auto)[ \t]/ {
+	next
+}
 # Inside openvpn section; copy as-is
 in_section {
 	print
