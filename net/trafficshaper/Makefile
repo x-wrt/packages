@@ -20,7 +20,6 @@ define Package/trafficshaper
   CATEGORY:=Network
   TITLE:=WAN traffic shaper based on LAN addresses
   DEPENDS:=+tc +kmod-sched-core +kmod-sched-connmark +kmod-ifb \
-	+(PACKAGE_nftables-json||PACKAGE_nftables-nojson):nftables \
 	+!(PACKAGE_nftables-json||PACKAGE_nftables-nojson):iptables \
 	+(IPV6&&!(PACKAGE_nftables-json||PACKAGE_nftables-nojson)):ip6tables \
 	+kmod-sched-cake \
