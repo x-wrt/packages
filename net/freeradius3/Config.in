@@ -3,7 +3,6 @@
 choice
 	prompt "SSL library"
 	default FREERADIUS3_OPENSSL
-	depends on PACKAGE_freeradius3-common
 
 config FREERADIUS3_NOSSL
 	bool "No SSL support"
