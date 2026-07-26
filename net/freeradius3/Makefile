@@ -46,7 +46,7 @@ endef
 
 define Package/freeradius3
   $(call Package/freeradius3/Default)
-  DEPENDS:=+freeradius3-common
+  DEPENDS:=+freeradius3-common +FREERADIUS3_OPENSSL:libopenssl +FREERADIUS3_OPENSSL:libopenssl-legacy
   TITLE:=A flexible RADIUS server (version 3)
 endef
 
@@ -63,7 +63,7 @@ endef
 define Package/freeradius3-common
   $(call Package/freeradius3/Default)
   TITLE:=common files
-  DEPENDS:=+USE_GLIBC:libcrypt-compat +USE_GLIBC:libpthread +USE_GLIBC:libbsd +FREERADIUS3_OPENSSL:libopenssl +FREERADIUS3_OPENSSL:libopenssl-legacy +libcap +libpcap +libncurses +libreadline +libtalloc +libatomic
+  DEPENDS:=+USE_GLIBC:libcrypt-compat +USE_GLIBC:libpthread +USE_GLIBC:libbsd +libcap +libpcap +libncurses +libreadline +libtalloc +libatomic
 endef
 
 define Package/freeradius3-default
@@ -710,7 +710,7 @@ endef
 
 define Package/freeradius3-utils
   $(call Package/freeradius3/Default)
-  DEPENDS:=+freeradius3-common
+  DEPENDS:=+freeradius3-common +FREERADIUS3_OPENSSL:libopenssl +FREERADIUS3_OPENSSL:libopenssl-legacy
   TITLE:=Misc. client utilities
 endef
 
