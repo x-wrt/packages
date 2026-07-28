@@ -19,6 +19,8 @@ PKG_LICENSE:=TCP-wrappers
 PKG_LICENSE_FILES:=DISCLAIMER
 PKG_CPE_ID:=cpe:/a:libwrap_project:libwrap
 
+PKG_BUILD_FLAGS:=no-mips16 no-lto
+
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)_$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package.mk
