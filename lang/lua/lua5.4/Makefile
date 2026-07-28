@@ -16,6 +16,7 @@ PKG_SOURCE_URL:=https://www.lua.org/ftp/ \
 	https://www.tecgraf.puc-rio.br/lua/ftp/
 PKG_HASH:=9fbf5e28ef86c69858f6d3d34eccc32e911c1a28b4120ff3e84aaa70cfbf1e30
 PKG_BUILD_PARALLEL:=1
+PKG_BUILD_FLAGS:=no-mips16 no-lto
 
 PKG_MAINTAINER:=Christian Marangi <ansuelsmth@gmail.com>
 
@@ -93,6 +94,7 @@ define Build/Compile
 		RANLIB="$(TARGET_CROSS)ranlib" \
 		INSTALL_ROOT=/usr \
 		CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" \
+		MYLDFLAGS="$(TARGET_LDFLAGS)" \
 		PKG_VERSION=$(PKG_VERSION) \
 		linux
 	rm -rf $(PKG_INSTALL_DIR)
