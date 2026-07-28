@@ -19,6 +19,7 @@ PKG_LICENSE:=MIT
 PKG_MAINTAINER:=Oskari Rauta <oskari.rauta@gmail.com>
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/lsqlite3-$(BUILD_VARIANT)/$(basename $(PKG_SOURCE))
+PKG_BUILD_FLAGS:=no-mips16 no-lto
 
 include $(INCLUDE_DIR)/package.mk
 
