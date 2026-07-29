@@ -35,7 +35,7 @@ define KernelPackage/ovpn-backports
   # modules, so pull in AF_KCM for now. This needs to be patched on kernel
   # side.
   #KCONFIG:=CONFIG_STREAM_PARSER=y
-  KCONFIG:=CONFIG_AF_KCM
+  KCONFIG:=CONFIG_STREAM_PARSER=y
   FILES:=$(PKG_BUILD_DIR)/drivers/net/ovpn/ovpn.ko
   AUTOLOAD:=$(call AutoLoad,30,ovpn)
 endef
