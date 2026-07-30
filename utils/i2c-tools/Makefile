@@ -19,6 +19,7 @@ PKG_MAINTAINER:=Daniel Golle <daniel@makrotopia.org>
 PKG_LICENSE:=GPL-2.0-or-later LGPL-2.1-or-later
 PKG_LICENSE_FILES:=COPYING COPYING.LGPL
 PKG_CPE_ID:=cpe:/a:i2c-tools_project:i2c-tools
+PKG_BUILD_FLAGS:=no-mips16 no-lto
 
 PKG_BUILD_PARALLEL:=1
 PYTHON3_PKG_BUILD:=0
