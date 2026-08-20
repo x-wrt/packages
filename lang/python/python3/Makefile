@@ -308,6 +308,8 @@ endif
 # build host's own /usr/include/ncursesw/curses.h.
 HOST_CONFIGURE_VARS += \
 	py_cv_module__tkinter=n/a \
+	py_cv_module__curses=n/a \
+	py_cv_module__curses_panel=n/a \
 	ac_cv_working_openssl_hashlib=yes \
 	ac_cv_header_curses_h=no \
 	ac_cv_header_ncurses_h=no \
