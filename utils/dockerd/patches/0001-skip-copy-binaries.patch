@@ -1,0 +1,8 @@
+--- a/hack/make/binary-daemon
++++ b/hack/make/binary-daemon
+@@ -26,6 +26,5 @@
+ 	GO_PACKAGE='github.com/moby/moby/v2/cmd/dockerd'
+ 	BINARY_NAME='dockerd'
+ 	source "${MAKEDIR}/.binary"
+-	copy_binaries "$DEST"
+ )
