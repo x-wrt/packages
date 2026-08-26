@@ -24,6 +24,9 @@ http {
 	client_max_body_size 256M;
 	large_client_header_buffers 2 1k;
 
+	uwsgi_temp_path /tmp/uwsgi_temp;
+	scgi_temp_path /tmp/scgi_temp;
+
 	gzip on;
 	gzip_vary on;
 	gzip_proxied any;
