@@ -36,7 +36,7 @@ define Package/squeezelite-full
     $(call Package/squeezelite/default)
     TITLE+= (full)
     VARIANT:=full
-    DEPENDS+= +libfaad2 +libffmpeg-audio-dec +libflac +libmpg123 \
+    DEPENDS+= +libfaad2 +libffmpeg +libflac +libmpg123 \
               +libopenssl +libopusfile +libsoxr +libvorbis
 endef
 
@@ -60,8 +60,7 @@ define Package/squeezelite-custom
               +SQUEEZELITE_RESAMPLE:libsoxr \
               +SQUEEZELITE_SSL:libopenssl \
               +SQUEEZELITE_VORBIS:libvorbis \
-              +SQUEEZELITE_VORBIS_TREMOR:libvorbisidec \
-              +SQUEEZELITE_WMA_ALAC:libffmpeg-audio-dec
+              +SQUEEZELITE_VORBIS_TREMOR:libvorbisidec
     MENU:=1
 endef
 
@@ -129,6 +128,7 @@ define Package/squeezelite-custom/config
 
 		config SQUEEZELITE_WMA_ALAC
 		    bool "WMA/ALAC decode support"
+		    select PACKAGE_libffmpeg
 		    help
 			WMA and ALAC codec support
 		    default n
@@ -167,7 +167,7 @@ define Package/squeezelite-dynamic/description
         * FLAC (libflac)
         * Ogg (libvorbis or libvorbisidec)
         * Opus (libopusfile)
-        * WMA and ALAC (libffmpeg-audio-dec)
+        * WMA and ALAC (libffmpeg)
 endef
 
 define Package/squeezelite-custom/description
