@@ -76,7 +76,6 @@ define Package/weechat-full
   DEPENDS+= +libncurses
   VARIANT:=full
   PROVIDES:=weechat
-  CONFLICTS:=weechat-minimal
 endef
 
 define Package/weechat-full/description
