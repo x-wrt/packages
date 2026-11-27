@@ -1,0 +1,210 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Chen Minqiang <ptpt52@gmail.com>
+Date: Fri, 27 Nov 2026 09:32:13 +0800
+Subject: [PATCH] xtables-addons: support Linux 7.3 for RTSP and Lua
+
+Adapt the RTSP helper to the new conntrack registration API and
+unregister only successfully registered helpers. Pass the bounded Lua
+script buffer directly to luaL_loadbuffer and replace the two remaining
+strncpy calls in the embedded Lua library.
+
+Upstream-Status: Inappropriate [OpenWrt-specific RTSP and Lua extensions]
+
+---
+--- a/extensions/LUA/xt_LUA_target.c
++++ b/extensions/LUA/xt_LUA_target.c
+@@ -130,18 +130,21 @@ lua_tg(struct sk_buff *pskb, const struc
+ 
+ }
+ /* Helper for checkentry */
+-static bool load_script_into_state(uint32_t  state_id, unsigned long script_size, char *script_buf)
++static bool load_script_into_state(uint32_t state_id, size_t script_size,
++				   const char *script_buf)
+ {
+-	char *buf = kmalloc(script_size, GFP_KERNEL);
++	struct lua_env *env;
+ 	int32_t ret;
+-	struct lua_env * env = kmalloc(sizeof(struct lua_env), GFP_KERNEL);
+ 
+-	if (!script_size) {
+-		pr_debug("LUA [%d]: script_size %lu < 0\n", state_id, script_size);
++	env = kmalloc(sizeof(*env), GFP_KERNEL);
++	if (!env)
+ 		return false;
+-	}
+ 
+ 	env->L = lua_open();
++	if (!env->L) {
++		kfree(env);
++		return false;
++	}
+ 	luaopen_base(env->L);
+ 	luaopen_controller(env->L);
+ 
+@@ -150,22 +153,18 @@ static bool load_script_into_state(uint3
+ 	lua_setfield(env->L, -2, "STATE_ID");
+ 	lua_pop(env->L, 1); /* pop _G */
+ 
+-	strncpy(buf, script_buf, script_size);
+-	ret = luaL_loadbuffer(env->L, buf, script_size, "PacketScript, loadbuffer") ||
++	ret = luaL_loadbuffer(env->L, script_buf, script_size, "PacketScript, loadbuffer") ||
+ 	      lua_pcall(env->L, 0, 1, 0);
+ 
+ 	if (ret != 0) {
+ 		printk(KERN_ERR "LUA [%d]: failure loading script, error %s \n", state_id, lua_tostring(env->L, -1));
+-		lua_pop(env->L, 1);
+-		kfree(buf);
++		lua_close(env->L);
+ 		kfree(env);
+ 		return false;
+ 	}
+ 
+ 	lua_envs[state_id] = env;
+ 
+-	kfree(buf);
+-
+ 	return true;
+ }
+ /*::*
+@@ -202,18 +201,18 @@ static bool load_script_into_state(uint3
+  *
+  * Loading the Lua script
+  * ~~~~~~~~~~~~~~~~~~~~~~
+- * Copying the buffer which was initialized by the userspace program to a
+- * buffer with the proper size. The script is then loaded by the function
+- * xt_LUA_loadcode, which wrapps the *luaL_loadbuffer* function and does
+- * some workqueue initialization. So far this is done each time this function
+- * is called, subject to change.
++ * Validate the buffer provided by userspace and load it into the Lua state.
+  */
+ static int
+ lua_tg_checkentry(const struct xt_tgchk_param *par)
+ {
+ 	const struct xt_lua_tginfo *info = par->targinfo;
+ 
+-	if (load_script_into_state(info->state_id, info->script_size, (char *)info->buf)) {
++	if (!info->script_size || info->script_size > sizeof(info->buf) ||
++	    info->state_id >= ARRAY_SIZE(lua_state_refs))
++		return -EINVAL;
++
++	if (load_script_into_state(info->state_id, info->script_size, info->buf)) {
+ 		lua_state_refs[info->state_id]++;
+ 		return 0;
+ 	}
+--- a/extensions/rtsp/nf_conntrack_rtsp.c
++++ b/extensions/rtsp/nf_conntrack_rtsp.c
+@@ -675,7 +675,12 @@ static int help(struct sk_buff *skb, uns
+ 	return ret;
+ }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7,3,0)
++static struct nf_conntrack_helper *rtsp_helpers[MAX_PORTS];
++#else
+ static struct nf_conntrack_helper rtsp_helpers[MAX_PORTS];
++#endif
++static int registered_ports;
+ static char rtsp_names[MAX_PORTS][10];
+ 
+ /* This function is intentionally _NOT_ defined as __exit */
+@@ -683,9 +688,13 @@ static void
+ fini(void)
+ {
+ 	int i;
+-	for (i = 0; i < num_ports; i++) {
++	for (i = 0; i < registered_ports; i++) {
+ 		pr_debug("unregistering port %d\n", ports[i]);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7,3,0)
++		nf_conntrack_helper_unregister(rtsp_helpers[i]);
++#else
+ 		nf_conntrack_helper_unregister(&rtsp_helpers[i]);
++#endif
+ 	}
+ 	kfree(rtsp_buffer);
+ }
+@@ -694,7 +703,11 @@ static int __init
+ init(void)
+ {
+ 	int i, ret;
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7,3,0)
++	struct nf_conntrack_helper helper;
++#else
+ 	struct nf_conntrack_helper *hlpr;
++#endif
+ 	char *tmpname;
+ 
+ 	printk("nf_conntrack_rtsp v" IP_NF_RTSP_VERSION " loading\n");
+@@ -718,6 +731,19 @@ init(void)
+ 	}
+ 
+ 	for (i = 0; (i < MAX_PORTS) && ports[i]; i++) {
++		tmpname = &rtsp_names[i][0];
++		if (ports[i] == RTSP_PORT) {
++			sprintf(tmpname, "rtsp");
++		} else {
++			sprintf(tmpname, "rtsp-%d", i);
++		}
++		pr_debug("port #%d: %d\n", i, ports[i]);
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7,3,0)
++		nf_ct_helper_init(&helper, NFPROTO_IPV4, IPPROTO_TCP, tmpname,
++				  &rtsp_exp_policy, 0, help, NULL, THIS_MODULE);
++		ret = nf_conntrack_helper_register(&helper, &rtsp_helpers[i]);
++#else
+ 		hlpr = &rtsp_helpers[i];
+ 		memset(hlpr, 0, sizeof(struct nf_conntrack_helper));
+ 		hlpr->tuple.src.l3num = AF_INET;
+@@ -727,13 +753,6 @@ init(void)
+ 		hlpr->me = THIS_MODULE;
+ 		hlpr->help = help;
+ 
+-		tmpname = &rtsp_names[i][0];
+-		if (ports[i] == RTSP_PORT) {
+-			sprintf(tmpname, "rtsp");
+-		} else {
+-			sprintf(tmpname, "rtsp-%d", i);
+-		}
+-
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,3,0)
+ 		strscpy(hlpr->name, tmpname, sizeof(hlpr->name));
+ #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0)
+@@ -741,15 +760,15 @@ init(void)
+ #else
+ 		hlpr->name = tmpname;
+ #endif
+-		pr_debug("port #%d: %d\n", i, ports[i]);
+-
+ 		ret = nf_conntrack_helper_register(hlpr);
++#endif
+ 
+ 		if (ret) {
+ 			printk("nf_conntrack_rtsp: ERROR registering port %d\n", ports[i]);
+ 			fini();
+ 			return -EBUSY;
+ 		}
++		registered_ports++;
+ 	}
+ 	return 0;
+ }
+--- a/extensions/LUA/lua/lobject.c
++++ b/extensions/LUA/lua/lobject.c
+@@ -180,8 +180,7 @@ const char *luaO_pushfstring (lua_State
+ 
+ void luaO_chunkid (char *out, const char *source, size_t bufflen) {
+   if (*source == '=') {
+-    strncpy(out, source+1, bufflen);  /* remove first char */
+-    out[bufflen-1] = '\0';  /* ensures null termination */
++    strscpy(out, source+1, bufflen);  /* remove first char */
+   }
+   else {  /* out = "source", or "...source" */
+     if (*source == '@') {
+--- a/extensions/LUA/lua/lstrlib.c
++++ b/extensions/LUA/lua/lstrlib.c
+@@ -754,7 +754,7 @@ static const char *scanformat (lua_State
+   if (isdigit(uchar(*p)))
+     luaL_error(L, "invalid format (width or precision too long)");
+   *(form++) = '%';
+-  strncpy(form, strfrmt, p - strfrmt + 1);
++  memcpy(form, strfrmt, p - strfrmt + 1);
+   form += p - strfrmt + 1;
+   *form = '\0';
+   return p;
