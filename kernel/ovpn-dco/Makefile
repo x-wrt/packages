@@ -10,7 +10,7 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=ovpn-backports
 PKG_VERSION:=7.3.0.2026100801
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:= \
@@ -45,25 +45,12 @@ define KernelPackage/ovpn-backports/description
   by offloading the data channel processing to kernelspace.
 endef
 
-NOSTDINC_FLAGS += \
-	$(KERNEL_NOSTDINC_FLAGS) \
-	-I$(PKG_BUILD_DIR)/include \
-	-I$(PKG_BUILD_DIR)/compat-include \
-	-include $(PKG_BUILD_DIR)/linux-compat.h
-
-EXTRA_KCONFIG:= \
-	CONFIG_OVPN=m
-
-PKG_EXTMOD_SUBDIRS = drivers/net/ovpn
-
-MAKE_OPTS:= \
-	M="$(PKG_BUILD_DIR)/$(PKG_EXTMOD_SUBDIRS)" \
-	NOSTDINC_FLAGS="$(NOSTDINC_FLAGS)" \
-	$(EXTRA_KCONFIG)
-
 define Build/Compile
 	+$(KERNEL_MAKE) $(PKG_JOBS) \
-		$(MAKE_OPTS) \
+		M="$(PKG_BUILD_DIR)" \
+		PWD="$(PKG_BUILD_DIR)" \
+		KERNEL_SRC="$(LINUX_DIR)" \
+		CONFIG_OVPN=m \
 		modules
 endef
 
