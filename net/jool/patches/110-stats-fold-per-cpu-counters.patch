@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Chen Minqiang <ptpt52@gmail.com>
+Date: Fri, 27 Nov 2026 09:12:47 +0800
+Subject: [PATCH] stats: fold per-CPU counters without snmp_fold_field
+
+Linux 7.3 no longer exports snmp_fold_field to modules. Sum the
+per-CPU counters locally using the same accumulator width.
+
+Upstream-Status: Pending
+
+---
+--- a/src/mod/common/stats.c
++++ b/src/mod/common/stats.c
+@@ -1,7 +1,8 @@
+ #include "mod/common/stats.h"
+ 
++#include <linux/cpumask.h>
+ #include <linux/kref.h>
+-#include <net/ip.h>
++#include <linux/percpu.h>
+ #include <net/snmp.h>
+ #include "mod/common/wkmalloc.h"
+ 
+@@ -73,14 +74,20 @@ void jstat_add(struct jool_stats *stats,
+ __u64 *jstat_query(struct jool_stats *stats)
+ {
+ 	__u64 *result;
++	int cpu;
+ 	int i;
+ 
+ 	result = kcalloc(JSTAT_COUNT, sizeof(__u64), GFP_KERNEL);
+ 	if (!result)
+ 		return NULL;
+ 
+-	for (i = 0; i < JSTAT_COUNT; i++)
+-		result[i] = snmp_fold_field(stats->mib, i);
++	for (i = 0; i < JSTAT_COUNT; i++) {
++		unsigned long count = 0;
++
++		for_each_possible_cpu(cpu)
++			count += READ_ONCE(per_cpu_ptr(stats->mib, cpu)->mibs[i]);
++		result[i] = count;
++	}
+ 
+ 	return result;
+ }
